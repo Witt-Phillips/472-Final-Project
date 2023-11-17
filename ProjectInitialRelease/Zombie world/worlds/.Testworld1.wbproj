@@ -1,0 +1,18 @@
+Webots Project File version R2023b
+perspectives: 000000ff00000000fd0000000200000001000001b900000280fc0200000001fb0000001400540065007800740045006400690074006f00720100000000000002800000004500ffffff00000003000005a00000005efc0100000001fb0000001a0043006f006e0073006f006c00650041006c006c0041006c006c0100000000000005a00000008700ffffff000003e50000028000000001000000020000000100000008fc00000000
+simulationViewPerspectives: 000000ff000000010000000200000118000002020100000002010000000100
+sceneTreePerspectives: 000000ff0000000100000003000000c0000000fc000000000100000002010000000200
+maximizedDockId: -1
+centralWidgetVisible: 1
+orthographicViewHeight: 1
+textFiles: -1
+consoles: Console:All:All
+renderingDevicePerspectives: youBot:BackHighRes;1;1;0;0
+renderingDevicePerspectives: youBot:BackLowRes;1;1;0;0
+renderingDevicePerspectives: youBot:ForwardHighRes;1;1;0;0
+renderingDevicePerspectives: youBot:ForwardHighResSmall;1;1;0;0
+renderingDevicePerspectives: youBot:ForwardHighResSmallFov;1;1;0;0
+renderingDevicePerspectives: youBot:ForwardLowResBigFov;1;1;0;0
+renderingDevicePerspectives: youBot:LeftLowRes;1;1;0;0
+renderingDevicePerspectives: youBot:RightLowRes;1;1;0;0
+renderingDevicePerspectives: youBot:range-finder;1;1;0;0

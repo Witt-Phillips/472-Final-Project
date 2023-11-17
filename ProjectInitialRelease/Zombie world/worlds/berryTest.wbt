@@ -1,0 +1,157 @@
+#VRML_SIM R2021b utf8
+WorldInfo {
+  basicTimeStep 128
+  coordinateSystem "NUE"
+}
+Viewpoint {
+  orientation -0.13505396612248952 -0.9771131619124317 -0.16434809111174822 1.8250486866375843
+  position -17.21674673503172 7.281970295008258 -5.3767678950514295
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+  castShadows FALSE
+}
+RectangleArena {
+  floorSize 25 25
+  floorTileSize 50 50
+}
+DEF Youbot Youbot {
+  translation 0 0.085297 0
+  rotation 0.999987208574567 -0.0013813423517076782 0.004865653147609176 -1.5710938681740114
+  controller "youbot_controller"
+  supervisor TRUE
+  bodySlot [
+    Accelerometer {
+    }
+    GPS {
+    }
+    Compass {
+    }
+    DEF ForwardLowResBigFov Camera {
+      translation 0.3 0 0
+      rotation 0.5773506025225371 -0.5773506025225371 -0.5773496025232256 2.09439
+      name "ForwardLowResBigFov"
+      fieldOfView 1
+      width 128
+    }
+    DEF ForwardHighResSmallFov Camera {
+      translation 0.3 0 0
+      rotation 0.5773506025225371 -0.5773506025225371 -0.5773496025232256 2.09439
+      name "ForwardHighResSmallFov"
+      fieldOfView 0.5
+      width 256
+      height 128
+    }
+    DEF ForwardHighResBigFov Camera {
+      translation 0.3 0 0
+      rotation 0.5773506025225371 -0.5773506025225371 -0.5773496025232256 2.09439
+      name "ForwardHighRes"
+      fieldOfView 1
+      width 256
+      height 128
+    }
+    DEF ForwardHighResSmallFov Camera {
+      translation 0.3 0 0
+      rotation 0.5773506025225371 -0.5773506025225371 -0.5773496025232256 2.09439
+      name "ForwardHighResSmall"
+      fieldOfView 0.5
+      width 256
+      height 128
+    }
+    DEF BackLowRes Camera {
+      translation -0.27 -2.00826e-06 1.02099e-06
+      rotation 0.5773486025216047 0.5773526025188509 0.5773496025209163 2.0944
+      name "BackLowRes"
+      fieldOfView 1
+      width 128
+    }
+    DEF RightLowRes Camera {
+      translation -0.00999658 -0.200002 1.57252e-06
+      rotation -6.106782428407177e-07 0.7071072811864377 0.70710628118604 -3.1415853071795863
+      name "RightLowRes"
+      fieldOfView 1
+      width 128
+    }
+    DEF LeftLowRes Camera {
+      translation -0.00999894 0.189998 -2.08147e-07
+      rotation -0.9999999999879128 -4.8411699999414835e-06 -8.588339999896191e-07 -1.5707953071795862
+      name "LeftLowRes"
+      fieldOfView 1
+      width 128
+    }
+    DEF BackHighRes Camera {
+      translation -0.27 -2.00826e-06 1.02099e-06
+      rotation 0.5773486025216047 0.5773526025188509 0.5773496025209163 2.0944
+      name "BackHighRes"
+      fieldOfView 1
+      width 256
+      height 128
+    }
+    Gyro {
+    }
+    LightSensor {
+    }
+    Receiver {
+    }
+    RangeFinder {
+      translation 0.41 0 0
+      rotation -0.5773502691896258 0.5773502691896258 0.5773502691896258 -2.0944
+      maxRange 5
+    }
+    Lidar {
+      rotation 0.5773509358554485 0.5773489358556708 0.5773509358554485 2.0944
+      numberOfLayers 1
+      near 0.3
+      minRange 0.3
+      maxRange 10
+      type "rotating"
+    }
+    Group {
+    }
+  ]
+}
+DEF Berry0 Solid {
+  translation 7.96007 0.0516629 3.2099
+  rotation -0.4472135954998153 2.4166820336214355e-12 -0.8944271909999872 0.0010477170011384145
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 1 0.2 0.1
+        roughness 1
+        metalness 0
+      }
+      geometry Box {
+        size 0.1 0.1 0.1
+      }
+    }
+  ]
+  name "solid(8)"
+  boundingObject DEF BOX Box {
+    size 0.1 0.1 0.1
+  }
+  physics Physics {
+  }
+}
+DEF Berry1 Solid {
+  translation -5.88993 0.0604899 -5.6501
+  rotation -0.4472135954998153 2.4166820336214355e-12 -0.8944271909999872 0.0010477170011384145
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 1 0.2 0.1
+        roughness 1
+        metalness 0
+      }
+      geometry Box {
+        size 0.1 0.1 0.1
+      }
+    }
+  ]
+  name "solid(1)"
+  boundingObject DEF BOX Box {
+    size 0.1 0.1 0.1
+  }
+  physics Physics {
+  }
+}

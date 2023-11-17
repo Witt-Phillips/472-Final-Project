@@ -1,0 +1,233 @@
+#VRML_SIM R2021b utf8
+WorldInfo {
+  basicTimeStep 128
+  coordinateSystem "NUE"
+}
+Viewpoint {
+  orientation 0.1325027531495619 -0.9576968712806254 -0.255459826875161 4.0876519557170905
+  position 26.021136291828714 18.36526152597332 -15.904645677302327
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+  castShadows FALSE
+}
+RectangleArena {
+  floorSize 25 25
+  floorTileSize 50 50
+}
+DEF Youbot Youbot {
+  translation 0 0.085297 0
+  rotation 0.999987208574567 -0.0013813423517076782 0.004865653147609176 -1.5710938681740114
+  controller "youbot_controller"
+  supervisor TRUE
+  bodySlot [
+    Accelerometer {
+    }
+    GPS {
+    }
+    Compass {
+    }
+    DEF ForwardLowResBigFov Camera {
+      translation 0.3 0 0
+      rotation 0.5773506025225371 -0.5773506025225371 -0.5773496025232256 2.09439
+      name "ForwardLowResBigFov"
+      fieldOfView 1
+      width 128
+    }
+    DEF ForwardHighResSmallFov Camera {
+      translation 0.3 0 0
+      rotation 0.5773506025225371 -0.5773506025225371 -0.5773496025232256 2.09439
+      name "ForwardHighResSmallFov"
+      fieldOfView 0.5
+      width 256
+      height 128
+    }
+    DEF ForwardHighResBigFov Camera {
+      translation 0.3 0 0
+      rotation 0.5773506025225371 -0.5773506025225371 -0.5773496025232256 2.09439
+      name "ForwardHighRes"
+      fieldOfView 1
+      width 256
+      height 128
+    }
+    DEF ForwardHighResSmallFov Camera {
+      translation 0.3 0 0
+      rotation 0.5773506025225371 -0.5773506025225371 -0.5773496025232256 2.09439
+      name "ForwardHighResSmall"
+      fieldOfView 0.5
+      width 256
+      height 128
+    }
+    DEF BackLowRes Camera {
+      translation -0.27 -2.00826e-06 1.02099e-06
+      rotation 0.5773486025216047 0.5773526025188509 0.5773496025209163 2.0944
+      name "BackLowRes"
+      fieldOfView 1
+      width 128
+    }
+    DEF RightLowRes Camera {
+      translation -0.00999658 -0.200002 1.57252e-06
+      rotation -6.106782428407177e-07 0.7071072811864377 0.70710628118604 -3.1415853071795863
+      name "RightLowRes"
+      fieldOfView 1
+      width 128
+    }
+    DEF LeftLowRes Camera {
+      translation -0.00999894 0.189998 -2.08147e-07
+      rotation -0.9999999999879128 -4.8411699999414835e-06 -8.588339999896191e-07 -1.5707953071795862
+      name "LeftLowRes"
+      fieldOfView 1
+      width 128
+    }
+    DEF BackHighRes Camera {
+      translation -0.27 -2.00826e-06 1.02099e-06
+      rotation 0.5773486025216047 0.5773526025188509 0.5773496025209163 2.0944
+      name "BackHighRes"
+      fieldOfView 1
+      width 256
+      height 128
+    }
+    Gyro {
+    }
+    LightSensor {
+    }
+    Receiver {
+    }
+    RangeFinder {
+      translation 0.41 0 0
+      rotation -0.5773502691896258 0.5773502691896258 0.5773502691896258 -2.0944
+      maxRange 5
+    }
+    Lidar {
+      rotation 0.5773509358554485 0.5773489358556708 0.5773509358554485 2.0944
+      numberOfLayers 1
+      near 0.3
+      minRange 0.3
+      maxRange 10
+      type "rotating"
+    }
+    Group {
+    }
+  ]
+}
+DEF Wall Solid {
+  translation -1 0.7 7.41
+  rotation 0.3066079193795392 -0.011854155239539529 -0.9517620830739724 -6.674201642052153e-16
+  children [
+    Shape {
+      appearance PBRAppearance {
+        roughness 1
+        metalness 0
+      }
+      geometry Box {
+        size 0.3 2.5 10
+      }
+    }
+  ]
+  name "solid(21)"
+  boundingObject Shape {
+    geometry Box {
+      size 0.3 2.5 10
+    }
+  }
+}
+DEF zombie0 Pedestrian {
+  translation -7.707573600054271 1.27 -7.145606399945701
+  rotation 0 1 0 0.8080057916952204
+  name "pedestrian1"
+  controller "blue_zombie"
+  controllerArgs [
+    "--trajectory=\"\""
+    "--speed=1.5"
+  ]
+  shirtColor 0 0.5 1
+  pantsColor 0 0.5 1
+  shoesColor 0 0.5 1
+  skinColor 0 0.5 1
+  bodySlot [
+    Emitter {
+      range 4
+      channel -1
+    }
+  ]
+  rightLegAngle 0.23563636363636417
+  rightLowerLegAngle 0.13490909090909156
+  rightFootAngle 0.40472727272727466
+  leftLegAngle -1.1294545454545468
+  leftLowerLegAngle 1.705272727272728
+  leftFootAngle -0.06490909090909155
+  rightArmAngle -0.34072727272727515
+  rightLowerArmAngle -0.5698181818181831
+  rightHandAngle -0.24709090909090947
+  leftArmAngle 0.5534545454545489
+  leftLowerArmAngle -0.6803636363636388
+  leftHandAngle 0.11563636363636419
+  headAngle 0.003272727272726854
+}
+DEF zombie1 Pedestrian {
+  translation 11.231 1.27 -1.53529
+  rotation 0 1 0 0.8080057916952204
+  name "pedestrian1(1)"
+  controller "blue_zombie"
+  controllerArgs [
+    "--trajectory=\"\""
+    "--speed=1.5"
+  ]
+  shirtColor 0 0.5 1
+  pantsColor 0 0.5 1
+  shoesColor 0 0.5 1
+  skinColor 0 0.5 1
+  bodySlot [
+    Emitter {
+      range 4
+      channel -1
+    }
+  ]
+  rightLegAngle 0.23563636363636417
+  rightLowerLegAngle 0.13490909090909156
+  rightFootAngle 0.40472727272727466
+  leftLegAngle -1.1294545454545468
+  leftLowerLegAngle 1.705272727272728
+  leftFootAngle -0.06490909090909155
+  rightArmAngle -0.34072727272727515
+  rightLowerArmAngle -0.5698181818181831
+  rightHandAngle -0.24709090909090947
+  leftArmAngle 0.5534545454545489
+  leftLowerArmAngle -0.6803636363636388
+  leftHandAngle 0.11563636363636419
+  headAngle 0.003272727272726854
+}
+DEF zombie2 Pedestrian {
+  translation 10.280486098758777 1.27 3.149176098758735
+  rotation 0 1 0 -1.2336738617206322
+  name "pedestrian(2)"
+  controller "blue_zombie"
+  controllerArgs [
+    "--trajectory=\"\""
+    " --speed=1.5"
+  ]
+  shirtColor 0 0.5 1
+  pantsColor 0 0.5 1
+  shoesColor 0 0.5 1
+  skinColor 0 0.5 1
+  bodySlot [
+    Emitter {
+      range 4
+      channel -1
+    }
+  ]
+  rightLegAngle 0.23563636363636417
+  rightLowerLegAngle 0.13490909090909156
+  rightFootAngle 0.40472727272727466
+  leftLegAngle -1.1294545454545468
+  leftLowerLegAngle 1.705272727272728
+  leftFootAngle -0.06490909090909155
+  rightArmAngle -0.34072727272727515
+  rightLowerArmAngle -0.5698181818181831
+  rightHandAngle -0.24709090909090947
+  leftArmAngle 0.5534545454545489
+  leftLowerArmAngle -0.6803636363636388
+  leftHandAngle 0.11563636363636419
+  headAngle 0.003272727272726854
+}
