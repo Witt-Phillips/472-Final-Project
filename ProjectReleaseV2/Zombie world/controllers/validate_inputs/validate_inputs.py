@@ -8,8 +8,29 @@ from youbot_zombie import *
 #------------------CHANGE CODE BELOW HERE ONLY--------------------------
 #define functions here for making decisions and using sensor inputs
     
-    
+# Map data structure
+    # Uses a hash map with GPS-derived coords as keys.
+    # Values are objects in MapCell, which hold relevant cell info.
+class Map:
+    def __init__(self, cellWidth, currCell):
+         self.cellWidth = cellWidth #in meters
+         self.cellTable = {}
+         self.currCell = currCell
+        
+    def gps_to_map(self, initialReading, gpsVal):
+        dist_from_origin = gpsVal - initialReading
+        index = dist_from_origin // self.cellWidth
+        return int(index)
 
+class MapCell:
+    def __init__(self, xPos, yPos, berryType, zombieType, visited, obstacle):
+        self.xPos = xPos
+        self.yPos = yPos
+        self.coordStr = "(" + str(xPos) + ", " + str(yPos) + ")"
+        self.berryType = berryType
+        self.zombieType = zombieType
+        self.visited = visited
+        self.obstacle = obstacle
 
 #------------------CHANGE CODE ABOVE HERE ONLY--------------------------
 
@@ -40,7 +61,7 @@ def main():
     
     gps = robot.getDevice("gps")
     gps.enable(timestep)
-    
+
     compass = robot.getDevice("compass")
     compass.enable(timestep)
     
@@ -82,6 +103,7 @@ def main():
     
     lidar = robot.getDevice("lidar")
     lidar.enable(timestep)
+    lidar.enablePointCloud()
     
     fr = robot.getDevice("wheel1")
     fl = robot.getDevice("wheel2")
@@ -93,6 +115,68 @@ def main():
     br.setPosition(float('inf'))
     bl.setPosition(float('inf'))
     
+    fr.setVelocity(0.0)
+    fl.setVelocity(0.0)
+    br.setVelocity(0.0)
+    bl.setVelocity(0.0)
+    
+    
+    #Initialize main map
+    mainMap = Map(.1, None)
+    
+    #Establish relative center from GPS
+    initialX = round(gps.getValues()[0], 3)
+    initialY = round(gps.getValues()[2], 3)
+   
+    mappedX = mainMap.gps_to_map(initialX, initialX)
+    mappedY = mainMap.gps_to_map(initialY, initialY)
+    
+    init_cell = MapCell(mappedX, mappedY, None, None, None, None)
+    #Verify we are centered at (0, 0)
+    print("Init Cell has coords:", init_cell.coordStr)
+    
+   
+    mainMap.cellTable[init_cell.coordStr] = init_cell
+    mainMap.currCell = init_cell.coordStr
+    
+    #Temp variable to track coord change.
+    temp_coords = ""
+
+    while robot.step(TIME_STEP) != -1:
+        #Get sensor data
+        gps_values = gps.getValues()
+        lidar_values = lidar.getRangeImage()
+        orientation = compass.getValues()
+        gpsX = round(gps_values[0], 3)
+        gpsY = round(gps_values[2], 3)
+        
+        #Cast gps readings to map coords
+        mappedX = mainMap.gps_to_map(initialX, gpsX)
+        mappedY = mainMap.gps_to_map(initialY, gpsY)
+        coords = "(" + str(mappedX) + ", " + str(mappedY) + ")"
+        
+        #Create new dictionary entry if cell unencountered
+        if mainMap.cellTable.get(coords) is None:
+            mainMap.cellTable[coords] = MapCell(mappedX, mappedY, None, None, None, None)    
+        
+        #Manipulate current cell
+        curr_cell = mainMap.cellTable.get(coords)
+        curr_cell.visited = True
+        
+        
+        #Testing
+        testingCoords = mainMap.cellTable.get(coords).coordStr
+        #print("Current cell visited?:", mainMap.cellTable.get(coords).visited)        
+        #print("GPS yields", gpsX, ",", gpsY)
+        if testingCoords != temp_coords:
+            print("Map Position:", testingCoords)
+        temp_coords = testingCoords
+        
+        #Motor Control     
+        fr.setVelocity(2.0)
+        fl.setVelocity(4.0)
+        br.setVelocity(2.0)
+        bl.setVelocity(4.0)
     
     i=0
            
@@ -106,12 +190,12 @@ def main():
            
             robot_not_dead = 0
             print("ROBOT IS OUT OF HEALTH")
-            # #if(zombieTest):
-              # print("TEST PASSED")
-            # #else:
-              # print("TEST FAILED")
-            # #robot.simulationQuit(20)
-            # #exit()
+            #if(zombieTest):
+            #    print("TEST PASSED")
+            #else:
+            #    print("TEST FAILED")
+            #robot.simulationQuit(20)
+            #exit()
             
         if(timer%2==0):
             trans = trans_field.getSFVec3f()

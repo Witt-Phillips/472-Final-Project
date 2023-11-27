@@ -2,10 +2,34 @@
 WorldInfo {
   basicTimeStep 128
   coordinateSystem "NUE"
+  contactProperties [
+    ContactProperties {
+      material1 "InteriorWheelMat"
+      coulombFriction [
+        0, 2, 0
+      ]
+      frictionRotation -0.785398 0
+      bounce 0
+      forceDependentSlip [
+        10, 0
+      ]
+    }
+    ContactProperties {
+      material1 "ExteriorWheelMat"
+      coulombFriction [
+        0, 2, 0
+      ]
+      frictionRotation 0.785398 0
+      bounce 0
+      forceDependentSlip [
+        10, 0
+      ]
+    }
+  ]
 }
 Viewpoint {
-  orientation 0.47756485767984364 -0.8550282212741263 -0.20213497355488685 5.394974210561848
-  position 23.348368305823016 13.721567723321085 18.167060499988693
+  orientation 0.1325027531495619 -0.9576968712806254 -0.255459826875161 4.0876519557170905
+  position 26.021136291828714 18.36526152597332 -15.904645677302327
 }
 TexturedBackground {
 }
@@ -19,7 +43,7 @@ RectangleArena {
 DEF Youbot Youbot {
   translation 0 0.085297 0
   rotation 0.999987208574567 -0.0013813423517076782 0.004865653147609176 -1.5710938681740114
-  controller "validate_inputs"
+  controller "youbot_controller"
   supervisor TRUE
   bodySlot [
     Accelerometer {
@@ -111,92 +135,25 @@ DEF Youbot Youbot {
     }
   ]
 }
-DEF Berry0 Solid {
-  translation 0.23022346837427063 0.1966107787459715 -11.420111734187133
-  rotation -0.4472135954998153 2.4166820336214355e-12 -0.8944271909999872 0.0010477170011384145
+DEF Wall Solid {
+  translation -1 0.7 7.41
+  rotation 0.3066079193795392 -0.011854155239539529 -0.9517620830739724 -6.674201642052153e-16
   children [
     Shape {
       appearance PBRAppearance {
-        baseColor 1 0.2 0.1
         roughness 1
         metalness 0
       }
       geometry Box {
-        size 0.1 0.1 0.1
+        size 0.3 2.5 10
       }
     }
   ]
-  name "solid(6)"
-  boundingObject DEF BOX Box {
-    size 0.1 0.1 0.1
-  }
-  physics Physics {
-  }
-}
-DEF Berry1 Solid {
-  translation 8.31007 0.0444805 -11.4201
-  rotation -0.4472135954998153 2.4166820336214355e-12 -0.8944271909999872 0.0010477170011384145
-  children [
-    Shape {
-      appearance PBRAppearance {
-        baseColor 1 0.2 0.1
-        roughness 1
-        metalness 0
-      }
-      geometry Box {
-        size 0.1 0.1 0.1
-      }
+  name "solid(21)"
+  boundingObject Shape {
+    geometry Box {
+      size 0.3 2.5 10
     }
-  ]
-  name "solid(1)"
-  boundingObject DEF BOX Box {
-    size 0.1 0.1 0.1
-  }
-  physics Physics {
-  }
-}
-DEF Berry2 Solid {
-  translation 10.0601 0.0433653 -10.3001
-  rotation -0.4472135954998153 2.4166820336214355e-12 -0.8944271909999872 0.0010477170011384145
-  children [
-    Shape {
-      appearance PBRAppearance {
-        baseColor 1 0.2 0.1
-        roughness 1
-        metalness 0
-      }
-      geometry Box {
-        size 0.1 0.1 0.1
-      }
-    }
-  ]
-  name "solid(2)"
-  boundingObject DEF BOX Box {
-    size 0.1 0.1 0.1
-  }
-  physics Physics {
-  }
-}
-DEF Berry3 Solid {
-  translation 1.14007 0.0603458 8.0999
-  rotation -0.4472135954998153 2.4166820336214355e-12 -0.8944271909999872 0.0010477170011384145
-  children [
-    Shape {
-      appearance PBRAppearance {
-        baseColor 1 0.2 0.1
-        roughness 1
-        metalness 0
-      }
-      geometry Box {
-        size 0.1 0.1 0.1
-      }
-    }
-  ]
-  name "solid(3)"
-  boundingObject DEF BOX Box {
-    size 0.1 0.1 0.1
-  }
-  physics Physics {
   }
 }
 DEF zombie0 Pedestrian {
@@ -233,55 +190,18 @@ DEF zombie0 Pedestrian {
   headAngle 0.003272727272726854
 }
 DEF zombie1 Pedestrian {
-  translation -7.62613 1.27 9.10663
-  rotation 0 1 0 2.4944603805566383
-  name "pedestrian(1)"
-  controller "green_zombie"
+  translation 11.231 1.27 -1.53529
+  rotation 0 1 0 0.8080057916952204
+  name "pedestrian1(1)"
+  controller "blue_zombie"
   controllerArgs [
     "--trajectory=\"\""
-    " --speed=1.5"
+    "--speed=1.5"
   ]
-  shirtColor 0 0.7 0
-  pantsColor 0 0.7 0
-  shoesColor 0 0.7 0
-  skinColor 0 0.7 0
-  bodySlot [
-    Emitter {
-      range 4
-      channel -1
-    }
-  ]
-  leftHandSlot [
-    Emitter {
-    }
-  ]
-  rightLegAngle 0.23563636363636417
-  rightLowerLegAngle 0.13490909090909156
-  rightFootAngle 0.40472727272727466
-  leftLegAngle -1.1294545454545468
-  leftLowerLegAngle 1.705272727272728
-  leftFootAngle -0.06490909090909155
-  rightArmAngle -0.34072727272727515
-  rightLowerArmAngle -0.5698181818181831
-  rightHandAngle -0.24709090909090947
-  leftArmAngle 0.5534545454545489
-  leftLowerArmAngle -0.6803636363636388
-  leftHandAngle 0.11563636363636419
-  headAngle 0.003272727272726854
-}
-DEF zombie4 Pedestrian {
-  translation -0.2575249436194565 1.27 6.951264149888269
-  rotation 0 1 0 -2.4126957399490436
-  name "pedestrian(5)"
-  controller "purple_zombie"
-  controllerArgs [
-    "--trajectory=\"\""
-    " --speed=1.5"
-  ]
-  shirtColor 0.6 0.2 1
-  pantsColor 0.6 0.2 1
-  shoesColor 0.6 0.2 1
-  skinColor 0.6 0.2 1
+  shirtColor 0 0.5 1
+  pantsColor 0 0.5 1
+  shoesColor 0 0.5 1
+  skinColor 0 0.5 1
   bodySlot [
     Emitter {
       range 4
@@ -302,19 +222,19 @@ DEF zombie4 Pedestrian {
   leftHandAngle 0.11563636363636419
   headAngle 0.003272727272726854
 }
-DEF zombie5 Pedestrian {
-  translation 0.00222015 1.27 -7.98276
-  rotation 0 1 0 2.542269011900159
-  name "pedestrian(4)"
-  controller "acqua_zombie"
+DEF zombie2 Pedestrian {
+  translation 10.280486098758777 1.27 3.149176098758735
+  rotation 0 1 0 -1.2336738617206322
+  name "pedestrian(2)"
+  controller "blue_zombie"
   controllerArgs [
     "--trajectory=\"\""
     " --speed=1.5"
   ]
-  shirtColor 0 0.9 0.7
-  pantsColor 0 0.9 0.7
-  shoesColor 0 0.9 0.7
-  skinColor 0 0.9 0.7
+  shirtColor 0 0.5 1
+  pantsColor 0 0.5 1
+  shoesColor 0 0.5 1
+  skinColor 0 0.5 1
   bodySlot [
     Emitter {
       range 4

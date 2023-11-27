@@ -2,6 +2,30 @@
 WorldInfo {
   basicTimeStep 128
   coordinateSystem "NUE"
+  contactProperties [
+    ContactProperties {
+      material1 "InteriorWheelMat"
+      coulombFriction [
+        0, 2, 0
+      ]
+      frictionRotation -0.785398 0
+      bounce 0
+      forceDependentSlip [
+        10, 0
+      ]
+    }
+    ContactProperties {
+      material1 "ExteriorWheelMat"
+      coulombFriction [
+        0, 2, 0
+      ]
+      frictionRotation 0.785398 0
+      bounce 0
+      forceDependentSlip [
+        10, 0
+      ]
+    }
+  ]
 }
 Viewpoint {
   orientation 0.47756485767984364 -0.8550282212741263 -0.20213497355488685 5.394974210561848
@@ -19,7 +43,7 @@ RectangleArena {
 DEF Youbot Youbot {
   translation 0 0.085297 0
   rotation 0.999987208574567 -0.0013813423517076782 0.004865653147609176 -1.5710938681740114
-  controller "validate_inputs"
+  controller "youbot_controller"
   supervisor TRUE
   bodySlot [
     Accelerometer {

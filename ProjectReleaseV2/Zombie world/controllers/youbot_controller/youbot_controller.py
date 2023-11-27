@@ -106,12 +106,12 @@ def main():
            
             robot_not_dead = 0
             print("ROBOT IS OUT OF HEALTH")
-            # #if(zombieTest):
-              # print("TEST PASSED")
-            # #else:
-              # print("TEST FAILED")
-            # #robot.simulationQuit(20)
-            # #exit()
+            #if(zombieTest):
+            #    print("TEST PASSED")
+            #else:
+            #    print("TEST FAILED")
+            #robot.simulationQuit(20)
+            #exit()
             
         if(timer%2==0):
             trans = trans_field.getSFVec3f()

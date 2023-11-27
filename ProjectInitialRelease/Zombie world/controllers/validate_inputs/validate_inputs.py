@@ -8,8 +8,55 @@ from youbot_zombie import *
 #------------------CHANGE CODE BELOW HERE ONLY--------------------------
 #define functions here for making decisions and using sensor inputs
     
+# Map data structure. Note map.dim must be odd in order for currCell to initialize at center.
+    # eventually need to add maptoAppend functionality
+class Map:
+    def __init__(self, dim, cellWidth):
+         self.dim = dim;
+         self.cellWidth = cellWidth #in meters
+         self.cellArr = []
+         
+         for i in range(dim ** 2):
+             if (i < (dim - 1)):
+                 x = i
+                 y = 0
+             else:
+                 x = i % dim 
+                 y = i // dim  
+             
+             self.cellArr.append(MapCell(x, y, "na", "na", False, False))
+             #print("Appended", self.cellArr[i].xPos, ",", self.cellArr[i].yPos, "at", i)
+         
+         #where currCell x = dim // 2, y = dim // 2
+         self.currCell = self.cellArr[(dim * (dim //2)) + (dim // 2)]
     
+    def getLength(self):
+        return self.cellWidth * self.dim
 
+class MapCell:
+    def __init__(self, xPos, yPos, berryType, zombieType, visited, obstacle):
+        self.xPos = xPos
+        self.yPos = yPos
+        self.berryType = berryType
+        self.zombieType = zombieType
+        self.visited = visited
+        self.obstacle = obstacle
+        
+currSquare = MapCell
+
+def gps_to_map(initialReading, gpsVal, map):
+    dist_from_origin = gpsVal - initialReading
+    index = dist_from_origin // map.cellWidth
+    return index
+        
+#testing
+testMap = Map(50, .1)
+print(testMap.getLength())
+
+# print("(", testMap.currCell.xPos, ", ", testMap.currCell.yPos, ")")
+
+# inst = MapCell(1, 1, "red", "blue", True, False)
+# print(inst.berryType)
 
 #------------------CHANGE CODE ABOVE HERE ONLY--------------------------
 
@@ -40,7 +87,7 @@ def main():
     
     gps = robot.getDevice("gps")
     gps.enable(timestep)
-    
+
     compass = robot.getDevice("compass")
     compass.enable(timestep)
     
@@ -82,6 +129,7 @@ def main():
     
     lidar = robot.getDevice("lidar")
     lidar.enable(timestep)
+    lidar.enablePointCloud()
     
     fr = robot.getDevice("wheel1")
     fl = robot.getDevice("wheel2")
@@ -93,6 +141,35 @@ def main():
     br.setPosition(float('inf'))
     bl.setPosition(float('inf'))
     
+    fr.setVelocity(0.0)
+    fl.setVelocity(0.0)
+    br.setVelocity(0.0)
+    bl.setVelocity(0.0)
+    
+    #Establish relative center from GPS
+    initialX = round(gps.getValues()[0], 3)
+    initialY = round(gps.getValues()[1], 3)
+    
+    #Initialize main map
+    mainMap = Map(50, .1)
+
+    while robot.step(TIME_STEP) != -1:
+        gps_values = gps.getValues()
+        lidar_values = lidar.getRangeImage()
+  
+        orientation = compass.getValues()
+        gpsX = round(gps_values[0], 3)
+        gpsY = round(gps_values[1], 3)   
+        
+        print(gpsX, ",", gpsY)
+        print("Mapped: \n",
+              gps_to_map(initialX, gpsX, mainMap), ",",
+              gps_to_map(initialY, gpsY, mainMap))
+               
+    fr.setVelocity(1.0)
+    fl.setVelocity(1.0)
+    br.setVelocity(1.0)
+    bl.setVelocity(1.0)
     
     i=0
            
@@ -106,12 +183,12 @@ def main():
            
             robot_not_dead = 0
             print("ROBOT IS OUT OF HEALTH")
-            # #if(zombieTest):
-              # print("TEST PASSED")
-            # #else:
-              # print("TEST FAILED")
-            # #robot.simulationQuit(20)
-            # #exit()
+            #if(zombieTest):
+            #    print("TEST PASSED")
+            #else:
+            #    print("TEST FAILED")
+            #robot.simulationQuit(20)
+            #exit()
             
         if(timer%2==0):
             trans = trans_field.getSFVec3f()
