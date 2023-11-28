@@ -13,7 +13,6 @@ from youbot_zombie import *
 # import matplotlib.pyplot as plt
 # from matplotlib.animation import FuncAnimation
 # import numpy as npy
-from controller import Display
 import math
 _2PI = 2 * math.pi
 #--------------------------------------------------------------------------------
@@ -32,7 +31,12 @@ class Map:
     def gps_to_map(self, initial, gpsVal):
         dist_from_origin = gpsVal - initial
         index = dist_from_origin // self.cellWidth
-        return int(index)
+        
+        #some kind of bug here... still not running when world is initially opened 
+        if math.isnan(index):
+            return 0
+        else:
+            return int(index)
         
     def map_lidar(self, beamNum, dist, ori):
         #Normalize angle
@@ -48,18 +52,18 @@ class Map:
         yMapped = self.gps_to_map(self.initialReading[1], yPos)
         coords = str_coords(xMapped, yMapped)
         #print("Coords are", coords)
-
         #print("Object detected at (", xPos, ",", yPos, ")")
         
+        #Toggles solid field
         if self.cellTable.get(coords) is None:
-            #Toggle 'solid' field
             self.cellTable[coords] = MapCell(xMapped, yMapped, None, None, None, True)
-            print("New solid detected at", coords, "marked solid")
+            #print("New solid detected at", coords, "marked solid")
         else:
             cell = self.cellTable.get(coords)
             cell.solid = True
-            print("Existing cell at", coords, "marked solid")
+            #print("Existing cell at", coords, "marked solid")
 
+#Cell class holds coordinates & type for each mapped cell.
 class MapCell:
     def __init__(self, xPos, yPos, berryType, zombieType, visited, solid):
         self.xPos = xPos
@@ -70,6 +74,7 @@ class MapCell:
         self.visited = visited
         self.solid = solid
 
+#Compass to bearing translation
 #Note - this code is translated from the C version available in the documentation.  
 def get_comp_angle(compassVals):
     angle = math.atan2(compassVals[1], compassVals[0]) # got rid of angle_rad - 1.5708
@@ -79,11 +84,6 @@ def get_comp_angle(compassVals):
 
 def str_coords(x, y):
     return "(" + str(x) + ", " + str(y) + ")"
-    
-# #Testing curr_pos visualization
-# plt.ion()
-# all_curr_pos_x = []
-# all_curr_pos_y = []
 
 #------------------CHANGE CODE ABOVE HERE ONLY--------------------------
 
@@ -109,8 +109,8 @@ def main():
     #------------------CHANGE CODE BELOW HERE ONLY--------------------------
     
     #COMMENT OUT ALL SENSORS THAT ARE NOT USED. READ SPEC SHEET FOR MORE DETAILS
-    accelerometer = robot.getDevice("accelerometer")
-    accelerometer.enable(timestep)
+    # accelerometer = robot.getDevice("accelerometer")
+    # accelerometer.enable(timestep)
     
     gps = robot.getDevice("gps")
     gps.enable(timestep)
@@ -118,46 +118,47 @@ def main():
     compass = robot.getDevice("compass")
     compass.enable(timestep)
     
-    camera1 = robot.getDevice("ForwardLowResBigFov")
-    camera1.enable(timestep)
+    # camera1 = robot.getDevice("ForwardLowResBigFov")
+    # camera1.enable(timestep)
     
-    camera2 = robot.getDevice("ForwardHighResSmallFov")
-    camera2.enable(timestep)
+    # camera2 = robot.getDevice("ForwardHighResSmallFov")
+    # camera2.enable(timestep)
     
-    camera3 = robot.getDevice("ForwardHighRes")
-    camera3.enable(timestep)
+    # camera3 = robot.getDevice("ForwardHighRes")
+    # camera3.enable(timestep)
     
-    camera4 = robot.getDevice("ForwardHighResSmall")
-    camera4.enable(timestep)
+    # camera4 = robot.getDevice("ForwardHighResSmall")
+    # camera4.enable(timestep)
     
     camera5 = robot.getDevice("BackLowRes")
     camera5.enable(timestep)
     
-    camera6 = robot.getDevice("RightLowRes")
-    camera6.enable(timestep)
+    # camera6 = robot.getDevice("RightLowRes")
+    # camera6.enable(timestep)
     
-    camera7 = robot.getDevice("LeftLowRes")
-    camera7.enable(timestep)
+    # camera7 = robot.getDevice("LeftLowRes")
+    # camera7.enable(timestep)
     
-    camera8 = robot.getDevice("BackHighRes")
-    camera8.enable(timestep)
+    # camera8 = robot.getDevice("BackHighRes")
+    # camera8.enable(timestep)
     
-    gyro = robot.getDevice("gyro")
-    gyro.enable(timestep)
+    # gyro = robot.getDevice("gyro")
+    # gyro.enable(timestep)
     
     lightSensor = robot.getDevice("light sensor")
     lightSensor.enable(timestep)
     
-    receiver = robot.getDevice("receiver")
-    receiver.enable(timestep)
+    # receiver = robot.getDevice("receiver")
+    # receiver.enable(timestep)
     
-    rangeFinder = robot.getDevice("range-finder")
-    rangeFinder.enable(timestep)
+    # rangeFinder = robot.getDevice("range-finder")
+    # rangeFinder.enable(timestep)
     
     lidar = robot.getDevice("lidar")
     lidar.enable(timestep)
     lidar.enablePointCloud()
     
+    # Wheel initialization
     fr = robot.getDevice("wheel1")
     fl = robot.getDevice("wheel2")
     br = robot.getDevice("wheel3")
@@ -173,26 +174,19 @@ def main():
     br.setVelocity(0.0)
     bl.setVelocity(0.0)
     
-    
-    #Initialize main map
+    #Initialize main map & establish relative center from GPS
     mainMap = Map(.1, None)
-    
-    #Establish relative center from GPS
+ 
     initialX = round(gps.getValues()[0], 3)
     initialY = round(gps.getValues()[2], 3)
     mainMap.initialReading = [initialX, initialY]
-    print("Initial unmapped coords:", mainMap.initialReading)
-
     init_cell = MapCell(0, 0, None, None, None, None)
-    print("Init Cell has coords:", init_cell.coordStr)
+    mainMap.currCell = init_cell
     
-   
-    mainMap.cellTable[init_cell.coordStr] = init_cell
-    mainMap.currCell = init_cell.coordStr
-    
-    #Temp variable to track coord change.
+    #Temp variable to track coord change across time steps
     temp_coords = ""
-
+    
+    # Sensor Control Loop
     while robot.step(TIME_STEP) != -1:
         #Get sensor data
         gps_values = gps.getValues()
@@ -214,11 +208,7 @@ def main():
         
         #Manipulate current cell
         mainMap.currCell = mainMap.cellTable.get(coords)
-        curr_cell = mainMap.cellTable.get(coords)
-        curr_cell.visited = True
-        
-        # all_curr_pos_x.append(curr_cell.xPos)
-        # all_curr_pos_y.append(curr_cell.xPos)
+        mainMap.currCell.visited = True
         
         #Lidar Mapping
         for i in range(len(lidar_values)):
@@ -227,30 +217,12 @@ def main():
                 #print(lidar_values)
                 #print("Orientation is", orientation)
                 #print("i =", i, ",lidar_values[i] =", lidar_values[i], ", ori =", orientation)
-
-       
-        #Motor Control     
-        fr.setVelocity(2.0)
-        fl.setVelocity(4.0)
-        br.setVelocity(2.0)
-        bl.setVelocity(4.0)
         
-        #Testing
-        # testingCoords = mainMap.cellTable.get(coords).coordStr
-        # #print("Current cell visited?:", mainMap.cellTable.get(coords).visited)        
-        # #print("GPS yields", gpsX, ",", gpsY)
-        # if testingCoords != temp_coords:
-            # print("Map Position:", testingCoords)
-        # temp_coords = testingCoords
         
-        # #Plotting
-        # plt.xlim(min(all_curr_pos_x) - 5, max(all_curr_pos_x) + 5)
-        # plt.ylim(min(all_curr_pos_y) - 5, max(all_curr_pos_y) + 5)
-        # plt.scatter(all_curr_pos_x, all_curr_pos_y, color='black')
-        # plt.pause(timestep)
-        # #plt.show()
-        
-    
+        fr.setVelocity(6.0)
+        fl.setVelocity(8.0)
+        br.setVelocity(6.0)
+        bl.setVelocity(8.0)
     i=0
          
 
@@ -286,27 +258,9 @@ def main():
         timer += 1
         
      #------------------CHANGE CODE BELOW HERE ONLY--------------------------   
-         #called every timestep
+
         
-        
-        #possible pseudocode for moving forward, then doing a 90 degree left turn
-        #if i <100
-            #base_forwards() -> can implement in Python with Webots C code (/Zombie world/libraries/youbot_control) as an example or make your own
-        
-        #if == 100 
-            # base_reset() 
-            # base_turn_left()  
-            #it takes about 150 timesteps for the robot to complete the turn
-                 
-        #if i==300
-            # i = 0
-        
-        #i+=1
-        
-        #make decisions using inputs if you choose to do so
-        
-                 
-        #------------------CHANGE CODE ABOVE HERE ONLY--------------------------
+     #------------------CHANGE CODE ABOVE HERE ONLY--------------------------
         
     
     return 0   
