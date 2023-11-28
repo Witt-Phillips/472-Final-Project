@@ -43,7 +43,7 @@ RectangleArena {
 DEF Youbot Youbot {
   translation 0 0.085297 0
   rotation 0.999987208574567 -0.0013813423517076782 0.004865653147609176 -1.5710938681740114
-  controller "youbot_controller"
+  controller "validate_inputs"
   supervisor TRUE
   bodySlot [
     Accelerometer {
