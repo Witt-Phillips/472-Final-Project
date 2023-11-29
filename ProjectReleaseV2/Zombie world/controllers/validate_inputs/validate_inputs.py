@@ -12,7 +12,8 @@ from youbot_zombie import *
 #Addditional packages/ constants---------------------------------------------------------------
 # import matplotlib.pyplot as plt
 # from matplotlib.animation import FuncAnimation
-# import numpy as npy
+import numpy as np
+import cv2
 import math
 _2PI = 2 * math.pi
 #--------------------------------------------------------------------------------
@@ -130,8 +131,8 @@ def main():
     # camera4 = robot.getDevice("ForwardHighResSmall")
     # camera4.enable(timestep)
     
-    camera5 = robot.getDevice("BackLowRes")
-    camera5.enable(timestep)
+    # camera5 = robot.getDevice("BackLowRes")
+    # camera5.enable(timestep)
     
     # camera6 = robot.getDevice("RightLowRes")
     # camera6.enable(timestep)
@@ -139,8 +140,8 @@ def main():
     # camera7 = robot.getDevice("LeftLowRes")
     # camera7.enable(timestep)
     
-    # camera8 = robot.getDevice("BackHighRes")
-    # camera8.enable(timestep)
+    camera8 = robot.getDevice("BackHighRes")
+    camera8.enable(timestep)
     
     # gyro = robot.getDevice("gyro")
     # gyro.enable(timestep)
@@ -218,6 +219,25 @@ def main():
                 #print("Orientation is", orientation)
                 #print("i =", i, ",lidar_values[i] =", lidar_values[i], ", ori =", orientation)
         
+        #Image processing
+        
+        #Green: 0, 0.7, 0
+        #Blue: 0, 0.5, 1
+        #Aqua: 0, 0.9, 0.7
+        #Purple: 0.6, 0.2, 1
+        
+        image = camera8.getImage()
+        width = camera8.getWidth()
+        height = camera8.getHeight()
+        
+        # Used ChatGPT to clarify syntax    
+        np_u = np.frombuffer(image, dtype = np.uint8)
+        np_img = np_u.reshape(height, width, 4)
+        rgb_img = np_img[:, :, :3]
+        #hsv_img = cv2.cvtColor(rgb_img, cv2.COLOR_RGB2HSV)
+        
+        cv2.imshow("Back Camera", rgb_img)
+        cv2.waitKey(100)
         
         fr.setVelocity(6.0)
         fl.setVelocity(8.0)
