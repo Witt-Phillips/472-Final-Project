@@ -54,7 +54,7 @@ class Map:
         coords = str_coords(xMapped, yMapped)
         #print("Coords are", coords)
         #print("Object detected at (", xPos, ",", yPos, ")")
-          
+        
         #Toggles solid field
         if self.cellTable.get(coords) is None:
             self.cellTable[coords] = MapCell(xMapped, yMapped, None, None, None, True)
