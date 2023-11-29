@@ -35,18 +35,21 @@ plotMap = True
 
 #%%  Define Classes
 class worldMapObject:
-    def __init__(self, youbot=None, grid_cell_width=0.1):
+    def __init__(self, youbot=None, grid_cell_width=grid_width_default):
         self.cell_width = grid_cell_width  # in meters
         self.youbot     = youbot # keep info on youtbot
         self.timestep   = None # initialize placeholder for world timestep in simulation
         self.cell_object_table    = {} # hash table for "map_cell":object_list_in_cell (e.g. '[1,0]':[berry1 berry2 zombie1] )
         self.world_object_list    = []
         self.cell_properties_list = []
-        self.berryProbabilities   ={
-            "red": None,
-            "pink": None,
-            "orange": None,
-            "yellow": None
+
+        props   = {"id": None, "probability": None}
+        effects = {"effect1":props, "effect2":props}
+        self.berryProbabilities   = {
+            "red": effects,
+            "pink": effects,
+            "orange": effects,
+            "yellow": effects
         }
 
     def update_berry_probability(self, berry_obj, effect_dif):
@@ -56,56 +59,49 @@ class worldMapObject:
         pass
 
 class baseObject():
-    def __init__(self, map, gps_xy=None, typeid=None):
+    def __init__(self, map, gps_xy=None, typeid=None , origin_xy=None):
         if gps_xy is None:
             gps_xy = [None, None]
-        self.map       = map
-        self.typeid    = typeid
-        self.object_id = id(self)
-        self.cell_idx  = None
-        self.cell_hash = None
-        self.gps_xy    = gps_xy
-        self.map_rc    = self.hash_gps_to_map()
-        self.init_gps  = map.youbot.init_gps
+        self.map        = map
+        self.typeid     = typeid
+        self.object_id  = id(self)
+        self.cell_idx   = None
+        self.cell_hash  = None
+        self.gps_xy     = gps_xy
+        self.map_rc     = self.hash_gps_to_map()
+        self.origin_xy  = origin_xy
 
     def hash_gps_to_map(self):
-        if self.gps_xy is not None:
+        if self.gps_xy[1] is not None:
             map_rc = convert_gps_to_map(self.gps_xy, self.map)
             # Update object worldMap if necessary
-            if (self.map_rc != map_rc):
+            if self.map_rc != map_rc:
                 self.update_cell_table(map_rc)
             return map_rc
         else:
             return None
 
     def update_cell_table(self , cell_rc):
+        # This function is called only when new_map_rc and old_map_rc don't match
+        hash_str = cell_rc.__str__()
+        new_rc   = cell_rc
+        old_rc   = self.map_rc
 
-        # Assign object to cell_object_table
-        if self.cell_hash is None:
-            # If this is the first time asigning this object to a grid cell
-            # Update the hash string to '[row , col]'
-            self.cell_hash = cell_rc.__str__()
-            if self.map.cell_object_table.get(self.cell_hash) is None:
-                # If the hash does not exist this is the first object in that cell
-                # Initialize the list at this hash with this object
-                self.map.cell_object_table[self.map_rc.__str__()] = [self]
+        self.cell_hash = hash_str
 
-            else: # Append the list at this hash with this object
-                self.map.cell_object_table[self.map_rc.__str__()].append(self.cell_hash)
-        else:
-            # This object exists in the world
-            # are we in a new cell?
-            get_object
-            if self.map_rc = map_rc
+        # Assign object to cell dictionary with hash string
+        if self.map.cell_object_table.get(hash_str) is None:
+            # If the hash does not exist this is the first object in that cell
+            # Initialize the list at this hash with this object
+            self.map.cell_object_table[hash_str] = [self]
+        else: # Append the list at this hash with this object
+            self.map.cell_object_table[hash_str].append(self)
 
-        # list of objects in cell
-        cell_list = self.map.cell_object_table[self.cell_hash]
+        # Remove this object from cell dictionary with old hash string
+        if old_rc is not None:
+            self.map.cell_object_table[old_rc.__str__()].remove(self)
 
-        # update map_rc of object
-
-
-
-class youbotObject(baseObject):
+ class youbotObject(baseObject):
     def __init__(self, map, wb_robot=None,sensors=None, wheels=None,gps_xy=None,init_gps_xy=None):
         super().__init__(map, gps_xy, 'youbot')
         self.wb_robot = wb_robot
@@ -135,7 +131,6 @@ class zombieObject(baseObject):
             self.distance = None
 
         map.world_object_list.append(self)
-
 
 class wallObject():
     def __init__(self, map, wall_color='brown', gps_xy=None, typeid='wall', moveable=False):
@@ -450,40 +445,41 @@ def sandbox():
     }
     main(simparams)
 
+sandbox()
 
-def old_main():
-
-    robot = []
-    mainMap = []
-    # Temp variable to track coord change across time steps
-    temp_coords = ""
-
-    # Sensor Control Loop
-    while robot.step(TIME_STEP) != -1:
-
-        # Get sensor data
-        gps_values = gps.getValues()
-        lidar_values = lidar.getRangeImage()
-        compass_values = compass.getValues()
-
-        orientation = get_comp_angle(compass_values)
-        gpsX = round(gps_values[0], 3)
-        gpsY = round(gps_values[2], 3)
-
-        # Cast gps readings to map coords
-        mappedX = mainMap.gps_to_map(mainMap.initialReading[0], gpsX)
-        mappedY = mainMap.gps_to_map(mainMap.initialReading[1], gpsY)
-        coords = str_coords(mappedX, mappedY)
-
-        # Create new dictionary entry if cell unencountered
-        if mainMap.cellTable.get(coords) is None:
-            mainMap.cellTable[coords] = MapCell(mappedX, mappedY, None, None, None, None)
-
-        # Manipulate current cell
-        mainMap.currCell = mainMap.cellTable.get(coords)
-        mainMap.currCell.visited = True
-
-        # Lidar Mapping
-        for i in range(len(lidar_values)):
-            if lidar_values[i] != float('inf') and lidar_values[i] != 0.0:
-                mainMap.map_lidar(i, lidar_values[i], orientation)
+# def old_main():
+#
+#     robot = []
+#     mainMap = []
+#     # Temp variable to track coord change across time steps
+#     temp_coords = ""
+#
+#     # Sensor Control Loop
+#     while robot.step(TIME_STEP) != -1:
+#
+#         # Get sensor data
+#         gps_values = gps.getValues()
+#         lidar_values = lidar.getRangeImage()
+#         compass_values = compass.getValues()
+#
+#         orientation = get_comp_angle(compass_values)
+#         gpsX = round(gps_values[0], 3)
+#         gpsY = round(gps_values[2], 3)
+#
+#         # Cast gps readings to map coords
+#         mappedX = mainMap.gps_to_map(mainMap.initialReading[0], gpsX)
+#         mappedY = mainMap.gps_to_map(mainMap.initialReading[1], gpsY)
+#         coords = str_coords(mappedX, mappedY)
+#
+#         # Create new dictionary entry if cell unencountered
+#         if mainMap.cellTable.get(coords) is None:
+#             mainMap.cellTable[coords] = MapCell(mappedX, mappedY, None, None, None, None)
+#
+#         # Manipulate current cell
+#         mainMap.currCell = mainMap.cellTable.get(coords)
+#         mainMap.currCell.visited = True
+#
+#         # Lidar Mapping
+#         for i in range(len(lidar_values)):
+#             if lidar_values[i] != float('inf') and lidar_values[i] != 0.0:
+#                 mainMap.map_lidar(i, lidar_values[i], orientation)
