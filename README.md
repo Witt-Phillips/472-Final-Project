@@ -12,7 +12,7 @@ Once you have PyCharm installed you can open the project folder in Pycharm with 
 To start off there are some things in settings that you have to do:
 #### 1. Go to PyCharm > Settings -> Project: 472-Final-Project
    -Make sure that the project interpreter is set to Python 3.8 in 472-Final-Project/bin/python
-![Alt text](image.png)
+![Alt text](refs/image.png)
 #### 2. Set up the Profiler; Run > Edit Configurations ... > + > Python Profiler
 >- Name it whatever you want
 >- Script: (the controller file that you want to run this with) e.g. im using it with 472-Final-Project/lib/Zombie World/controllers/calbick_controller_template/calbick_controller_template.py
@@ -28,10 +28,10 @@ To start off there are some things in settings that you have to do:
 >- We need to set the Python interpreter to the **intell version of python we put in the Webots python interpreter path**: /usr/local/bin/python3.8
 >- Set the working directory to the directory of the controller file you are running; I also checked the box to add content roots to PYTHONPATH, which I think helps with finding all the other zombie controller files
 >- OK  
-![Alt text](image-1.png)
+![Alt text](refs/image-1.png)
 > NOTE: I saved this configuration by checking the "stoe as project file" box and saving it in the .idea/runConfigurations folder so that it can be shared with the rest of the team, you should just be able to add it but I wanted to let you know the process
 >> Also, my directory git is linked to "cpsc472/" so if you see this in a path it would be the "472-Final-Project/" folder in the repo if you just pulled straight from GitHub
-![Alt text](image-2.png)
+![Alt text](refs/image-2.png)
 #### 3. Now you should be able to run the controller file with the profiler 
 > - Run > Profile 'calbick_controller_template' or simply click the play button in the blue profiler box 
 > > This will start a python console and run the code initializing python ![Alt text](image-4.png)
