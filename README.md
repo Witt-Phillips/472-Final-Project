@@ -19,23 +19,26 @@ Once you have PyCharm installed you can open the project folder in Pycharm with 
 #### 2. Set up the Profiler; Run > Edit Configurations ... > + > Python Profiler
 >- Name it whatever you want
 >- Script: (the controller file that you want to run this with) e.g. im using it with 472-Final-Project/lib/Zombie World/controllers/calbick_controller_template/calbick_controller_template.py
->- Now we have to set some environment variables so that the controller can find the webots library
->> Click the little icon to the left of the Environment Variables text box and a window like this will appear:
+>- Now we have to set some environment variables so that the controller can find the Webots library
+>> Click the little icon to the right of the Environment Variables text box and a window like this will appear:
 ![Alt text](refs/image-3.png)
->>> We need to set these variables (bolded portions should be replaced with your own path to the project folder):
->>> - WEBOTS_HOME=/Applications/Webots.app
->>> - 
->>>LD_LIBRARY_PATH=DYLD_LIBRARY_PATH=/Applications/Webots.app/projects/robots/kuka/youbot/libraries/youbot_control:**/Users/danielcalbick/science/pycharm_projects/cpsc472**/lib/Zombie world/libraries/youbot_control:**/Users/danielcalbick/science/pycharm_projects/cpsc472**/lib/Zombie world/controllers/validate_inputs:/Applications/Webots.app/lib/controller
->>> - PYTHONPATH=/Applications/Webots.app/lib/controller/python38_brew
->>> - PATH=/Applications/Webots.app/bin:$PATH
->>> - QT_QPA_PLATFORM_PLUGIN_PATH=/Applications/Webots.app/lib/webots/qt/plugins
+>>> We need to set these variables (**/Users/danielcalbick/science/pycharm_projects/cpsc472** should be replaced with your own path to the project folder):
+>>> ```bash
+>>> WEBOTS_HOME=/Applications/Webots.app
+>>> LD_LIBRARY_PATH="/Applications/Webots.app/projects/robots/kuka/youbot/libraries/youbot_control:/Users/danielcalbick/science/pycharm_projects/cpsc472/lib/Zombie world/libraries/youbot_control:/Users/danielcalbick/science/pycharm_projects/cpsc472/lib/Zombie world/controllers/validate_inputs:/Applications/Webots.app/lib/controller"
+>>> PYTHONPATH=/Applications/Webots.app/lib/controller/python38_brew
+>>> PATH=/Applications/Webots.app/bin:$PATH
+>>> QT_QPA_PLATFORM_PLUGIN_PATH=/Applications/Webots.app/lib/webots/qt/plugins
+>>> ```
 >- We need to set the Python interpreter to the **intell version of python we put in the Webots python interpreter path**: /usr/local/bin/python3.8
 >- Set the working directory to the directory of the controller file you are running; I also checked the box to add content roots to PYTHONPATH, which I think helps with finding all the other zombie controller files
->- OK  
-![Alt text](refs/image-1.png)
-> NOTE: I saved this configuration by checking the "stoe as project file" box and saving it in the .idea/runConfigurations folder so that it can be shared with the rest of the team, you should just be able to add it but I wanted to let you know the process
->> Also, my directory git is linked to "cpsc472/" so if you see this in a path it would be the "472-Final-Project/" folder in the repo if you just pulled straight from GitHub
-![Alt text](refs/image-2.png)
+>- OK  <br>
+![Alt text](refs/image-1.png) <br>
+> NOTE: I saved this configuration by checking the "store as project file" box and saving it in the .idea/runConfigurations folder so that it can be shared with the rest of the team, you should just be able to add it but I wanted to let you know the process <br>
+> ![Alt text](refs/image-2.png)
+>> Also, my directory git is linked to "cpsc472/" so if you see this in a path it would be the "472-Final-Project/" folder in the repo if you just pulled straight from GitHub 
+><br>
+
 #### 3. The last thing we need to change is the Webots controller within the Youbot note in the scene tree
 >- Open the scene tree and click on the youbot node
 >- In the properties window on the right, click on the "Controller" and in the smaller dropdown menu select **\<extern>**, this should already be selected if you loaded the world file from the lib/Zombie world/worlds/zombiesAndBerries.wbt but I'm not entirely sure ![Alt text](refs/image7.png)
@@ -85,6 +88,12 @@ Let me know if you guys have any issues with the setup or if you have any questi
 
 ---
 
+<p align="center">
+Here's a video of me using it:
+</p>
 
+<p align="center">
+  <img src="refs/Pychar-Webots.gif" alt="temp">
+</p>
 
 
