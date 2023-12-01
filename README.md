@@ -1,16 +1,18 @@
-# CPSC 472 Final Project
+<h1 align="center">CPSC 472 Final Project</h1>
 
+---
 ## Getting Webots to work with PyCharm
 ### Useful links:
 
 - [Webots, Using your IDE](https://cyberbotics.com/doc/guide/using-your-ide?tab-os=macos&tab-language=python)
 - [Webots, Running and External Controller](https://cyberbotics.com/doc/guide/running-extern-robot-controllers?version=R2021b&tab-language=python&tab-os=macos)
 
-So you can get Pycharm from [JetBrains](https://www.jetbrains.com/community/education/#students) for free if you have a student email; I think there is just a slight email process and verification process.
+So you can get Pycharm from [JetBrains](https://www.jetbrains.com/community/education/#students) for free if you have a student email; I think there is just a slight email and verification process.
 
 Once you have PyCharm installed you can open the project folder in Pycharm with the base directory being the repo folder from GitHub. The scripts that I have been working with are all in the lib/ folder and the binaries are in the bin/ folder.
 
-To start off there are some things in settings that you have to do:
+---
+## To start off there are some things in settings that you have to do:
 #### 1. Go to PyCharm > Settings -> Project: 472-Final-Project
    -Make sure that the project interpreter is set to Python 3.8 in 472-Final-Project/bin/python
 ![Alt text](refs/image.png)
@@ -73,9 +75,12 @@ There is a mode called "Scientific Mode" which is a useful way to run this for a
 >- *Further*, you can still use the Webots interface to move the youbot around and interact with the world. The console will still be active and you can run the code block at ```[609]``` to see how the gps (or any other sensor) values change as you move the youbot around the world. This is how I plan to build the image processing piece because I can put the youbot right infront of whatever I want, and read the sensor value playing around with the data in PyCharm's console and variable viewer.
 > <br>
 
+---
 <p>
 Let me know if you guys have any issues with the setup or if you have any questions about how to use PyCharm. I think this will be a really useful tool for us to use to develop the controller and I hope you guys can get it working on your machines.
 </p>
+
+---
 
 
 
