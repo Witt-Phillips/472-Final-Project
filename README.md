@@ -15,6 +15,8 @@
       - [4.1 Pycharm Scientific Mode](#41-pycharm-scientific-mode)
   - [Using the Interface](#using-the-interface)
 - [Running Webots 2021b on arm64](#running-webots-2021b-on-arm64)
+  - [TL;DR](#tldr)
+    - [Explaination](#explaination)
   
 ---
 
@@ -125,3 +127,24 @@ Here's a video of me using it:
 ---
 
 ## Running Webots 2021b on arm64
+### TL;DR 
+
+```bash
+# 1. In terminal switch to x84 via 
+> env /usr/bin/arch -x86_64 /bin/zsh --login
+# 2. Install an x84 version of brew 
+> /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+# 3. Install python w/ x84 brew 
+> /usr/local/bin/brew install python@3.8
+# 4. Set the binary in Webots to the intel version:
+/usr/local/bin/python3.8
+```
+
+#### Explaination
+If you're interested, the reason we need to do this is because Webots 2021b was not yet compatible with the new arm64 architecture. To get older versions of Webots to run on new arm64-based Apple computers there a few things we need to address. 
+
+The main issues are that the Webots dependencies are looking for x86_64 based Python installations. Normally, the most common way to install Python is through homebrew in the terminal—-which also has a both a x86_64 and arm64 version. 
+
+The arm64 version is the default on M1 Macs and is stored in a different binary directory (/opt/homebrew/bin/brew) and subsequently installs all versions of Python as arm64 and in a different location than the x86_64 Homebrew (/usr/local/bin/brew). 
+
+Webots is looking for a compatible Python installation in the x86_64 Homebrew directory, so we need to install a x86_64 version of Homebrew and Python.
