@@ -22,7 +22,8 @@ To start off there are some things in settings that you have to do:
 ![Alt text](refs/image-3.png)
 >>> We need to set these variables (bolded portions should be replaced with your own path to the project folder):
 >>> - WEBOTS_HOME=/Applications/Webots.app
->>> - LD_LIBRARY_PATH=DYLD_LIBRARY_PATH=/Applications/Webots.app/projects/robots/kuka/youbot/libraries/youbot_control:**/Users/danielcalbick/science/pycharm_projects/cpsc472**/lib/Zombie world/libraries/youbot_control:**/Users/danielcalbick/science/pycharm_projects/cpsc472**/lib/Zombie world/controllers/validate_inputs:/Applications/Webots.app/lib/controller
+>>> - 
+>>>LD_LIBRARY_PATH=DYLD_LIBRARY_PATH=/Applications/Webots.app/projects/robots/kuka/youbot/libraries/youbot_control:**/Users/danielcalbick/science/pycharm_projects/cpsc472**/lib/Zombie world/libraries/youbot_control:**/Users/danielcalbick/science/pycharm_projects/cpsc472**/lib/Zombie world/controllers/validate_inputs:/Applications/Webots.app/lib/controller
 >>> - PYTHONPATH=/Applications/Webots.app/lib/controller/python38_brew
 >>> - PATH=/Applications/Webots.app/bin:$PATH
 >>> - QT_QPA_PLATFORM_PLUGIN_PATH=/Applications/Webots.app/lib/webots/qt/plugins

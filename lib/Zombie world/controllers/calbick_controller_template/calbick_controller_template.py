@@ -307,8 +307,6 @@ def init_youbot(map):
     # health, energy, armour in that order
     robot_info = [100, 100, 0]
     passive_wait(0.1, robot, timestep)
-    pc = 0
-    timer = 0
 
     # Sensor initialization
     gps = robot.getDevice("gps")
@@ -446,6 +444,7 @@ def simulate_main(nzombies=3,nberries=10,ntimesteps=100):
         # Update zombie positions
 
 #%% Start simple simulation
+
 def simple_sim():
     # Initialize main map & establish relative center from GPS
     world_map = worldMapObject()
@@ -490,15 +489,6 @@ def simple_sim():
 
                 # This could be made more efficient if we limit search to only hash coordinates within youbot (r, 𝜃)
                 gpsvals, = [object.gps_xy for object in object_list]
-
-
-def sandbox():
-
-    simparams = {
-        "nzombies":3,
-        "nberries":10
-    }
-    main(simparams)
 
 
 def start_sim():
@@ -590,6 +580,7 @@ def start_sim():
 
 #%% ----------- Sandbox -----------
 
+# Initialize map
 world_map = worldMapObject()
 
 # Initialize youbot in world with sensors
@@ -597,16 +588,54 @@ youbot   = init_youbot(world_map)
 robot    = youbot.wb_robot
 timestep = world_map.timestep
 
+# Stuff that they put in I believe
 passive_wait(0.1, robot, timestep)
 pc = 0
 timer = 0
 
+# They also use these to update information in the simulation
 robot_node = robot.getFromDef("Youbot")
 trans_field = robot_node.getField("translation")
 
+# Loads the zombie and berry controllers for the world
 get_all_berry_pos(robot)
 
-#%%
+#%% Run time step by time step
+# NOTE: must run once after moving in Webots manually to get the current sensor readings!
 
 tmp = robot.step(TIME_STEP)
 youbot.sensors["gps"].getValues()
+
+# ------------- Individual Sandboxes ---------------
+# This allows us to write longer codeblocks that won't be run upon syncing with webots
+
+def sandbox_dc():
+#%% Sandbox for Dan
+    # tmp = robot.step(TIME_STEP)
+    youbot.sensors["gps"].getValues()
+
+    image  = youbot.sensors["camera"].getImage()
+    width  = youbot.sensors["camera"].getWidth()
+    height = youbot.sensors["camera"].getHeight()
+
+    np_u    = np.frombuffer(image, dtype=np.uint8)
+    np_img  = np_u.reshape(height, width, 4)
+    rgb_img = np_img[:, :, :3]
+    # hsv_img = cv2.cvtColor(rgb_img, cv2.COLOR_RGB2HSV)
+
+    plt.ion()
+    ax = plt.subplots()
+
+    plt.imshow(rgb_img)
+
+
+
+def sandbox_wp():
+#%% Sandbox for Witt
+    tmp = robot.step(TIME_STEP)
+    youbot.sensors["gps"].getValues()
+
+def sandbox_ma():
+#%% Sandbox for Mohammad
+    tmp = robot.step(TIME_STEP)
+    youbot.sensors["gps"].getValues()
