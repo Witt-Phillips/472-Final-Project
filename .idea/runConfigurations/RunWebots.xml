@@ -1,0 +1,30 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="RunWebots" type="PythonConfigurationType" factoryName="Python">
+    <module name="cpsc472" />
+    <option name="INTERPRETER_OPTIONS" value="" />
+    <option name="PARENT_ENVS" value="true" />
+    <envs>
+      <env name="DYLD_LIBRARY_PATH" value="/Applications/Webots.app/projects/robots/kuka/youbot/libraries/youbot_control:$PROJECT_DIR$/lib/Zombie world/libraries/youbot_control:$PROJECT_DIR$/lib/Zombie world/controllers/validate_inputs:/Applications/Webots.app/lib/controller" />
+      <env name="PYTHONPATH" value="/Applications/Webots.app/lib/controller/python38_brew" />
+      <env name="QT_QPA_PLATFORM_PLUGIN_PATH" value="/Applications/Webots.app/lib/webots/qt/plugins" />
+      <env name="WEBOTS_HOME" value="/Applications/Webots.app" />
+      <env name="__CFBundleIdentifier" value="com.cyberbotics.webots" />
+      <env name="LD_LIBRARY_PATH" value="/usr/local/lib/python3.8/site-packages/cv2/../../lib" />
+    </envs>
+    <option name="SDK_HOME" value="/usr/local/bin/python3.8" />
+    <option name="SDK_NAME" value="Python 3.8 (cpsc472) (2)" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/lib/Zombie world/controllers/calbick_controller_template" />
+    <option name="IS_MODULE_SDK" value="false" />
+    <option name="ADD_CONTENT_ROOTS" value="true" />
+    <option name="ADD_SOURCE_ROOTS" value="true" />
+    <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/lib/Zombie world/controllers/calbick_controller_template/calbick_controller_template.py" />
+    <option name="PARAMETERS" value="" />
+    <option name="SHOW_COMMAND_LINE" value="true" />
+    <option name="EMULATE_TERMINAL" value="false" />
+    <option name="MODULE_MODE" value="false" />
+    <option name="REDIRECT_INPUT" value="false" />
+    <option name="INPUT_FILE" value="" />
+    <method v="2" />
+  </configuration>
+</component>
