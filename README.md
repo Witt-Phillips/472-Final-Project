@@ -2,7 +2,7 @@
 
 ---
 
-<p style="font-size:200%;;"> Table of Contents </p>
+<h2 align="center"> Table of Contents </h2>
 
 - [Getting Webots to work with PyCharm](#getting-webots-to-work-with-pycharm)
   - [Useful links:](#useful-links)
