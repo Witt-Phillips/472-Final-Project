@@ -1,0 +1,145 @@
+import random
+import math
+
+p = 0.75
+
+class probInst:
+    def __init__(self):
+        self.first = None #effect
+        self.second = None #effect
+        self.first_c = None
+        self.second_c = None
+        self.dist = [] #Array of observed effects (first: 1, second: 0)
+        self.prob = 0.5
+
+class BerryProb:
+    def __init__(self):
+        self.probList = {
+            "red": probInst(),
+            "pink" : probInst(),
+            "orange" : probInst(),
+            "yellow" : probInst(),
+        }
+   
+    # updates world berry dist
+    def update_prob(self, color, effect):
+        pi = self.probList[color] #probInst object
+        
+        #Init_1
+        if pi.first is None:  
+            pi.first = effect          
+            pi.first_c = self.find_c(effect)
+            if pi.first_c is not None:
+                # Pulling from complement to update
+                n_k = self.n_k_from_comp(pi.first_c, pi)
+                c_obj = self.probList[pi.first_c]
+                pi.prob = bayesian_update(pi.prob, likelihood(n_k[0] + 1, n_k[1], p))
+
+                #Updating complement
+                same_idx = True if c_obj.first == pi.first or c_obj.second == pi.second else False
+                k = 1 if same_idx is False else 0
+                c_obj.prob = bayesian_update(c_obj.prob, likelihood(k, 1, p))
+
+                pi.dist.append(1)
+            return
+        
+        #up_1
+        if pi.first == effect:
+            if pi.first_c is not None:
+                #Updating complement
+                c_obj = self.probList[pi.first_c]
+                same_idx = True if c_obj.first == pi.first or c_obj.second == pi.second else False
+                k = 1 if same_idx == False else 0
+                c_obj.prob = bayesian_update(c_obj.prob, likelihood(k, 1, p))
+            
+            pi.prob = bayesian_update(pi.prob, likelihood(1, 1, p))
+            pi.dist.append(1)
+            return
+        
+        #Init_2
+        if pi.second is None:
+            pi.second = effect 
+            pi.second_c = self.find_c(effect)
+            if pi.second_c is not None:
+                # Pulling from complement to update
+                n_k = self.n_k_from_comp(pi.second_c, pi)
+                c_obj = self.probList[pi.second_c]
+                pi.prob = bayesian_update(pi.prob, likelihood(n_k[0] + 1, n_k[1], p))
+
+                #Updating complement
+                same_idx = True if c_obj.first == pi.first or c_obj.second == pi.second else False
+                k = 1 if same_idx == False else 0
+                c_obj.prob = bayesian_update(c_obj.prob, likelihood(k, 1, p))
+
+                pi.dist.append(0)
+            return
+        
+        #up_2
+        if pi.second == effect:  
+            if pi.second_c is not None:
+                #Updating complement
+                c_obj = self.probList[pi.second_c]
+                same_idx = True if c_obj.first == pi.first or c_obj.second == pi.second else False
+                k = 1 if same_idx == False else 0
+                c_obj.prob = bayesian_update(c_obj.prob, likelihood(k, 1, p))
+            pi.prob = bayesian_update(pi.prob, likelihood(0, 1, p))
+            pi.dist.append(0)
+            return
+            
+    def find_c(self, effect):
+        for color, inst in self.probList.items():
+            if inst.first == effect:
+                return color
+            if inst.second == effect:
+                return color
+            
+    def n_k_from_comp(self, comp_color, effect_inst):
+        c_obj = self.probList[comp_color]
+        dist = c_obj.dist
+        n = len(dist)
+        ones = dist.count(1)
+        
+        same_idx = True if c_obj.first == effect_inst.first or c_obj.second == effect_inst.second else False
+        k = ones if same_idx is True else n - ones
+        return n, k
+    
+#Likelihood (Binomial Theorem)
+def likelihood(k, n, p):
+    return math.comb(n, k) * ((p) ** k) * ((p - 1) ** (n - k))
+
+# Updates the prior based on evidence
+def bayesian_update(prior, likelihood):
+    ltp = likelihood * prior
+    marginal = ltp + ((1 - likelihood) * (1 - prior))
+    return ltp / marginal
+
+
+#Testing
+probMap = BerryProb()
+sample_size = 10
+berryList = []
+berry_color_options = ["red", "pink", "orange", "yellow"]
+effect_options = ["p20E", "m20E", "p40H", "arm"]
+
+class BerryObject:
+    def __init__(self, id, berry_color=None, effect=None):
+        self.id = id
+        self.effect = effect
+        self.color     = berry_color
+
+while sample_size > 0:
+     color = random.choice(berry_color_options)
+     effect = random.choice(effect_options)
+     id = ''.join(random.choices('0123456789', k=4))
+     berryList.append(BerryObject(id, color, effect))
+     sample_size -= 1
+
+for item in berryList:
+     print(item.color, item.effect)
+     probMap.update_prob(item.color, item.effect)
+print("\n")
+
+for key, value in probMap.probList.items():
+    print("Color:", key, "First:", value.first, "Second:", value.second, "Prob:", value.prob)
+
+print("Red dist:", probMap.probList["red"].dist)

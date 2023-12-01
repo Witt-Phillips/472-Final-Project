@@ -3,7 +3,7 @@
   <component name="NewModuleRootManager">
     <content url="file:///Applications/Webots.app/lib/controller/python38" />
     <content url="file://$MODULE_DIR$" />
-    <orderEntry type="jdk" jdkName="Python 3.8 (cpsc472)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.8 (472-Final-Project)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PyDocumentationSettings">
