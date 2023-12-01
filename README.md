@@ -18,7 +18,7 @@ To start off there are some things in settings that you have to do:
 >- Script: (the controller file that you want to run this with) e.g. im using it with 472-Final-Project/lib/Zombie World/controllers/calbick_controller_template/calbick_controller_template.py
 >- Now we have to set some environment variables so that the controller can find the webots library
 >> Click the little icon to the left of the Environment Variables text box and a window like this will appear:
-![Alt text](image-3.png)
+![Alt text](refs/image-3.png)
 >>> We need to set these variables (bolded portions should be replaced with your own path to the project folder):
 >>> - WEBOTS_HOME=/Applications/Webots.app
 >>> - LD_LIBRARY_PATH=DYLD_LIBRARY_PATH=/Applications/Webots.app/projects/robots/kuka/youbot/libraries/youbot_control:**/Users/danielcalbick/science/pycharm_projects/cpsc472**/lib/Zombie world/libraries/youbot_control:**/Users/danielcalbick/science/pycharm_projects/cpsc472**/lib/Zombie world/controllers/validate_inputs:/Applications/Webots.app/lib/controller
@@ -34,7 +34,7 @@ To start off there are some things in settings that you have to do:
 ![Alt text](refs/image-2.png)
 #### 3. Now you should be able to run the controller file with the profiler 
 > - Run > Profile 'calbick_controller_template' or simply click the play button in the blue profiler box 
-> > This will start a python console and run the code initializing python ![Alt text](image-4.png)
+> > This will start a python console and run the code initializing python ![Alt text](refs/image-4.png)
 > - You won't have control of the console until you click the play button in Webots to start the simulation
 ##### 3.1 A note on Pycharm
 There is a mode called "Scientific Mode" which is a useful way to run this for a couple reasons:
