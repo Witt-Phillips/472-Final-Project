@@ -93,7 +93,7 @@ Here's a video of me using it:
 </p>
 
 <p align="center">
-  <img src="refs/Pychar-Webots.gif" alt="temp">
+  <img src="refs/Pychar-Webots.gif" alt="temp" width="75%">
 </p>
 
 
