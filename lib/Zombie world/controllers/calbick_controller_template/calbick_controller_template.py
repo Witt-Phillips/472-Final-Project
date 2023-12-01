@@ -1,7 +1,13 @@
 """youbot_controller controller."""
+
+import sys,os
+webots_home = '/Applications/WeBots.app'  # Replace with your actual path
+root_dir = os.path.join(webots_home, 'lib', 'controller')
+
 from controller import Robot, Motor, Camera, Accelerometer, GPS, Gyro, LightSensor, Receiver, RangeFinder, Lidar
 from controller import Supervisor
 from youbot_zombie import *
+
 
 #%%
 # ------------------CHANGE CODE BELOW HERE ONLY--------------------------
@@ -9,7 +15,7 @@ from youbot_zombie import *
 import numpy as np
 import cv2
 import math
-import matplotlib as plt
+import matplotlib.pyplot as plt
 from math import sin, cos
 import random
 
@@ -139,13 +145,22 @@ class cellObject():
 #%%  Define Functions
 
 def getObjectRGB(object):
+
     color_map = {
+        "zombie": "purple" , "berry": "red",
         "purple_zombie":"purple" , "green_zombie":"green",
         "aqua_zombie": "aqua", "blue_zombie": "blue",
         "pink_berry": "pink", "orange_berry": "orange",
         "red_berry": "red", "yellow_berry": "yellow",
         "brown": "gray"
     }
+
+    if object.color is None:
+        color_id = object.typeid
+    else:
+        color_id = color_map['_'.join([object.typeid, object.color])]
+
+    return color_id
 
 
 def orient_to_object(youbot , object):
@@ -217,62 +232,66 @@ def plot_init(map):
     # Creating the dictionary
     groot_tags = {tag: filter_by_typeid(tag) for tag in unique_tags}
 
-    # Adding additional keys if needed
-    groot_tags["youbot"] =
-    groot_tags["visit_map"] = some_visit_map_value
-
-    object_list = map.cell_object_list
-
-    max_cell  = max([max(obj.map_rc) for obj in object_list])
-    max_grid  = max_cell + 0.1
-    grid_range = np.arange(-max_grid, max_grid, 1)
-    ax.set_xticks(grid_range)
-    ax.set_yticks(grid_range)
-    ax.grid(True, which='both', color='black', linewidth=1,)
-
-    ax.set_xlim(-max_grid - 0.5, max_grid + 0.5)
-    ax.set_ylim(-max_grid - 0.5, max_grid + 0.5)
-
-    # Draw gridlines and squares
-    for x in np.arange(-max_cell, max_cell + 1):
-        for y in np.arange(-max_cell, max_cell + 1):
-            cell_key = f"({x}, {y})"
-            if cell_key in map_instance.cellTable:
-                cell = map_instance.cellTable[cell_key]
-                color = 'green' if cell.visited else 'black'
-            else:
-                color = 'white'
-            ax.add_patch(plt.Rectangle((x - 0.5, y - 0.5), 1, 1, color=color, edgecolor='black'))
-
-    # Plot cells
-    for cell in map_instance.cellTable.values():
-        color = 'green' if (cell.xPos, cell.yPos) == current_pos else 'black' if cell.visited else 'white'
-        ax.add_patch(plt.Rectangle((cell.xPos - 0.5, cell.yPos - 0.5), 1, 1, color=color))
-
-    # Scatter different objects
-    object_colors = {
-        "purple_zombie": "purple", "green_zombie": "green", "aqua_zombie": "aqua",
-        "blue_zombie": "blue", "pink_berry": "pink", "orange_berry": "orange",
-        "red_berry": "red", "yellow_berry": "yellow", "wall": "gray", "self": "black"
-    }
-    for cell in map_instance.cellTable.values():
-        if cell.typeid:
-            obj_type = cell.typeid
-            ax.scatter(cell.xPos, cell.yPos, color=object_colors[obj_type], s=30)
-
-    plt.draw()
-    plt.pause(0.1)
+    # # Adding additional keys if needed
+    # groot_tags["youbot"] = []
+    # groot_tags["visit_map"] = some_visit_map_value
+    #
+    # object_list = map.cell_object_list
+    #
+    # max_cell  = max([max(obj.map_rc) for obj in object_list])
+    # max_grid  = max_cell + 0.1
+    # grid_range = np.arange(-max_grid, max_grid, 1)
+    # ax.set_xticks(grid_range)
+    # ax.set_yticks(grid_range)
+    # ax.grid(True, which='both', color='black', linewidth=1,)
+    #
+    # ax.set_xlim(-max_grid - 0.5, max_grid + 0.5)
+    # ax.set_ylim(-max_grid - 0.5, max_grid + 0.5)
+    #
+    # # Draw gridlines and squares
+    # for x in np.arange(-max_cell, max_cell + 1):
+    #     for y in np.arange(-max_cell, max_cell + 1):
+    #         cell_key = f"({x}, {y})"
+    #         if cell_key in map_instance.cellTable:
+    #             cell = map_instance.cellTable[cell_key]
+    #             color = 'green' if cell.visited else 'black'
+    #         else:
+    #             color = 'white'
+    #         ax.add_patch(plt.Rectangle((x - 0.5, y - 0.5), 1, 1, color=color, edgecolor='black'))
+    #
+    # # Plot cells
+    # for cell in map_instance.cellTable.values():
+    #     color = 'green' if (cell.xPos, cell.yPos) == current_pos else 'black' if cell.visited else 'white'
+    #     ax.add_patch(plt.Rectangle((cell.xPos - 0.5, cell.yPos - 0.5), 1, 1, color=color))
+    #
+    # # Scatter different objects
+    # object_colors = {
+    #     "purple_zombie": "purple", "green_zombie": "green", "aqua_zombie": "aqua",
+    #     "blue_zombie": "blue", "pink_berry": "pink", "orange_berry": "orange",
+    #     "red_berry": "red", "yellow_berry": "yellow", "wall": "gray", "self": "black"
+    # }
+    # for cell in map_instance.cellTable.values():
+    #     if cell.typeid:
+    #         obj_type = cell.typeid
+    #         ax.scatter(cell.xPos, cell.yPos, color=object_colors[obj_type], s=30)
+    #
+    # plt.draw()
+    # plt.pause(0.1)
 
     return fig, ax
 
-def update_plot(map, new_objects, ax):
+def update_plot(map, fig, ax):
+
+    new_objects = map.world_object_list
+    for obj in new_objects:
+        x, y, c = obj.gps_xy[1], obj.gps_xy[2], getObjectRGB(obj)
+
     # robot position
     for obj in new_objects():
-        if cell.typeid:
-            obj_type = cell.typeid
-            ax.scatter(cell.xPos, cell.yPos, color=object_colors[obj_type], s=30)
+        if obj.typeid:
+            obj_type = obj.typeid
+            ax.scatter(obj.xPos, obj.yPos, color=obj[obj_type], s=30)
 
-    x_positions = [cell.xPos for cell in cells]
     ax.scatter(x, y, c='r', marker='o')
     fig.canvas.draw()
     fig.canvas.flush_events()
@@ -290,7 +309,6 @@ def init_youbot(map):
     passive_wait(0.1, robot, timestep)
     pc = 0
     timer = 0
-
 
     # Sensor initialization
     gps = robot.getDevice("gps")
@@ -344,6 +362,7 @@ def init_youbot(map):
     youbot.wb_robot   = robot
     youbot.robot_info = robot_info
     youbot.sensors    = sensors
+    youbot.wheels     = wheels
 
     map.timestep      = timestep
 
@@ -376,10 +395,6 @@ def main(simparams=None):
     # Temp variable to track coord change across time steps
     temp_coords = ""
 
-    if simparams is not None:
-        sim_random_world(nzombies=simparams["nzombies"],
-                         nberries=simparams["nberries"])
-
     # Sensor Control Loop
     while robot.step(TIME_STEP) != -1:
 
@@ -400,16 +415,13 @@ def main(simparams=None):
                 # This could be made more efficient if we limit search to only hash coordinates within youbot (r, 𝜃)
                 gpsvals, = [object.gps_xy for object in object_list]
 
-                mainMap.map_lidar(i, lidar_values[i], orientation)
+                # mainMap.map_lidar(i, lidar_values[i], orientation)
 
 
-        if plotMap:
-            new_objects = get_objects_to_update(world_map)
-
-            update_plot(map, new_objects, ax)
-
-
-
+        # if plotMap:
+        #     new_objects = get_objects_to_update(world_map)
+        #
+        #     update_plot(map, new_objects, ax)
 
 def simulate_main(nzombies=3,nberries=10,ntimesteps=100):
 #%%
@@ -430,11 +442,54 @@ def simulate_main(nzombies=3,nberries=10,ntimesteps=100):
     # Run simulation and plot
     for t in range(ntimesteps):
         # Update youbot position
-
+        pass
         # Update zombie positions
 
+#%% Start simple simulation
+def simple_sim():
+    # Initialize main map & establish relative center from GPS
+    world_map = worldMapObject()
 
+    # Initialize youbot in world with sensors
+    youbot = init_youbot(world_map)
+    robot = youbot.wb_robot
 
+    # Run get all berry positions from controllers/youbot_controllers/youbot_zombie.py
+    get_all_berry_pos(robot)
+
+    # Initialize plot
+    if plotMap:
+        fig, ax = plot_init(world_map)
+
+    robot_not_dead = 1
+    timestep = world_map.timestep
+    robot_node = robot.getFromDef("Youbot")
+    trans_field = robot_node.getField("translation")
+
+    youbot.init_gps = round(youbot.sensors["gps"].getValues()[0, 2], 3)
+
+    # Temp variable to track coord change across time steps
+    temp_coords = ""
+
+    # Sensor Control Loop
+    while robot.step(TIME_STEP) != -1:
+
+        # Get sensor data
+        gps_values = youbot.sensors["gps"].getValues()
+        lidar_values = youbot.sensors["lidar"].getRangeImage()
+        compass_values = youbot.sensors["compass"].getValues()
+
+        # Update youbot orientation and gps position
+        youbot.orientation = get_comp_angle(compass_values)
+        youbot.gps_xy = round(gps_values[0, 2], 3)
+
+        # Lidar Mapping
+        for i in range(len(lidar_values)):
+            if lidar_values[i] != float('inf') and lidar_values[i] != 0.0:
+                object_list = world_map.world_object_list
+
+                # This could be made more efficient if we limit search to only hash coordinates within youbot (r, 𝜃)
+                gpsvals, = [object.gps_xy for object in object_list]
 
 
 def sandbox():
@@ -445,41 +500,113 @@ def sandbox():
     }
     main(simparams)
 
-sandbox()
 
-# def old_main():
-#
-#     robot = []
-#     mainMap = []
-#     # Temp variable to track coord change across time steps
-#     temp_coords = ""
-#
-#     # Sensor Control Loop
-#     while robot.step(TIME_STEP) != -1:
-#
-#         # Get sensor data
-#         gps_values = gps.getValues()
-#         lidar_values = lidar.getRangeImage()
-#         compass_values = compass.getValues()
-#
-#         orientation = get_comp_angle(compass_values)
-#         gpsX = round(gps_values[0], 3)
-#         gpsY = round(gps_values[2], 3)
-#
-#         # Cast gps readings to map coords
-#         mappedX = mainMap.gps_to_map(mainMap.initialReading[0], gpsX)
-#         mappedY = mainMap.gps_to_map(mainMap.initialReading[1], gpsY)
-#         coords = str_coords(mappedX, mappedY)
-#
-#         # Create new dictionary entry if cell unencountered
-#         if mainMap.cellTable.get(coords) is None:
-#             mainMap.cellTable[coords] = MapCell(mappedX, mappedY, None, None, None, None)
-#
-#         # Manipulate current cell
-#         mainMap.currCell = mainMap.cellTable.get(coords)
-#         mainMap.currCell.visited = True
-#
-#         # Lidar Mapping
-#         for i in range(len(lidar_values)):
-#             if lidar_values[i] != float('inf') and lidar_values[i] != 0.0:
-#                 mainMap.map_lidar(i, lidar_values[i], orientation)
+def start_sim():
+
+    # Put into helper function init_youbot
+
+    # ------------------CHANGE CODE BELOW HERE ONLY--------------------------
+
+    # Initialize main map & establish relative center from GPS
+    world_map = worldMapObject()
+
+    # Initialize youbot in world with sensors
+    youbot   = init_youbot(world_map)
+    robot    = youbot.wb_robot
+    timestep = world_map.timestep
+
+    passive_wait(0.1, robot, timestep)
+    pc = 0
+    timer = 0
+
+    robot_node = robot.getFromDef("Youbot")
+    trans_field = robot_node.getField("translation")
+
+    get_all_berry_pos(robot)
+
+    robot_not_dead = 1
+
+    # Run get all berry positions from controllers/youbot_controllers/youbot_zombie.py
+    get_all_berry_pos(robot)
+
+
+    # Sensor Control Loop
+    count = 0
+    # while robot.step(TIME_STEP) != -1:
+    for i in range(10):
+        print(robot.step(TIME_STEP))
+        image  = youbot.sensors["camera"].getImage()
+        width  = youbot.sensors["camera"].getWidth()
+        height = youbot.sensors["camera"].getHeight()
+
+        # # Used ChatGPT to clarify syntax
+        # np_u    = np.frombuffer(image, dtype=np.uint8)
+        # np_img  = np_u.reshape(height, width, 4)
+        # rgb_img = np_img[:, :, :3]
+        # # hsv_img = cv2.cvtColor(rgb_img, cv2.COLOR_RGB2HSV)
+        #
+        # cv2.imshow("Back Camera", rgb_img)
+        # cv2.waitKey(100)
+
+        youbot.wheels["font_right"].setVelocity(6.0)
+        youbot.wheels["font_left"].setVelocity(8.0)
+        youbot.wheels["back_right"].setVelocity(6.0)
+        youbot.wheels["back_left"].setVelocity(8.0)
+
+
+    # ------------------CHANGE CODE ABOVE HERE ONLY--------------------------
+
+    while (robot_not_dead == 1):
+
+        if (robot_info[0] < 0):
+            robot_not_dead = 0
+            print("ROBOT IS OUT OF HEALTH")
+            # if(zombieTest):
+            #    print("TEST PASSED")
+            # else:
+            #    print("TEST FAILED")
+            # robot.simulationQuit(20)
+            # exit()
+
+        if (timer % 2 == 0):
+            trans = trans_field.getSFVec3f()
+            robot_info = check_berry_collision(robot_info, trans[0], trans[2], robot)
+            robot_info = check_zombie_collision(robot_info, trans[0], trans[2], robot)
+
+        if (timer % 16 == 0):
+            robot_info = update_robot(robot_info)
+            timer = 0
+
+        if (robot.step(timestep) == -1):
+            exit()
+
+        timer += 1
+
+    # ------------------CHANGE CODE BELOW HERE ONLY--------------------------
+
+    # ------------------CHANGE CODE ABOVE HERE ONLY--------------------------
+
+    return 0
+
+#%% ----------- Sandbox -----------
+
+world_map = worldMapObject()
+
+# Initialize youbot in world with sensors
+youbot   = init_youbot(world_map)
+robot    = youbot.wb_robot
+timestep = world_map.timestep
+
+passive_wait(0.1, robot, timestep)
+pc = 0
+timer = 0
+
+robot_node = robot.getFromDef("Youbot")
+trans_field = robot_node.getField("translation")
+
+get_all_berry_pos(robot)
+
+#%%
+
+tmp = robot.step(TIME_STEP)
+youbot.sensors["gps"].getValues()

@@ -201,16 +201,6 @@ def map_lidar(map, beam_number, magnitude):
     objects   = map.world_object_list
     positions = [obj.gps_xy for obj in objects]
 
-    assign_object(map , gps_xy)
-    # Toggles solid field
-    if self.cellTable.get(coords) is None:
-        self.cellTable[coords] = MapCell(xMapped, yMapped, None, None, True)
-        # print("New solid detected at", coords, "marked solid")
-    else:
-        cell = self.cellTable.get(coords)
-        cell.solid = True
-        # print("Existing cell at", coords, "marked solid")
-
 def assign_object(map , gps_xy):
 
 ########### Plotting Functions ###############

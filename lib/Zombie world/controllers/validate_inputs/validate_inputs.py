@@ -1,5 +1,12 @@
 """youbot_controller controller."""
 
+import sys,os
+
+webots_home = '/Applications/WeBots.app'  # Replace with your actual path
+root_dir = os.path.join(webots_home, 'lib', 'controller')
+for subdir, dirs, files in os.walk(root_dir):
+    sys.path.append(subdir)
+
 from controller import Robot, Motor, Camera, Accelerometer, GPS, Gyro, LightSensor, Receiver, RangeFinder, Lidar
 from controller import Supervisor
 
@@ -18,7 +25,7 @@ import math
 _2PI = 2 * math.pi
 #--------------------------------------------------------------------------------
 
-
+print(os.environ.values())
 # Map data structure
     # Uses a hash map with GPS-derived coords as keys.
     # Values are objects in MapCell, which hold relevant cell info.
