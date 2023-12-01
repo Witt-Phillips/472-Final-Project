@@ -15,6 +15,8 @@ from youbot_zombie import *
 import numpy as np
 import cv2
 import math
+from scipy.spatial.transform import Rotation as R
+from scipy.optimize import minimize
 _2PI = 2 * math.pi
 #--------------------------------------------------------------------------------
 
@@ -192,11 +194,30 @@ def main():
 
     # Orientation
     starting_orientation = 0.0
-    estimated_orientation = 0.0
+    estimated_orientation_using_wheels = 0.0
 
-    def calculate_orientation_change(left_velocity, right_velocity, track_width, t):
+    previous_scan = None
+    estimated_orientation_using_lidar = 0.0
+
+    def calculate_orientation_change_using_wheels(left_velocity, right_velocity, track_width, t):
             rotational_velocity = (right_velocity - left_velocity) / track_width
             return rotational_velocity * t
+    
+    def calculate_orientation_change_using_lidar(previous_scan, current_scan):
+        points1 = np.array(previous_scan)
+        points2 = np.array(current_scan)
+
+        def alignment_error(rotation_angle, points1, points2):
+            rotation_matrix = R.from_euler('z', rotation_angle).as_matrix()[0:2, 0:2]
+            rotated_points2 = np.dot(points2, rotation_matrix)
+            error = np.sum((points1 - rotated_points2) ** 2)
+            return error
+        
+        initial_guess = [0]
+
+        result = minimize(alignment_error, initial_guess, args=(points1, points2))
+        return result.x[0]
+
 
     # Sensor Control Loop
     while robot.step(TIME_STEP) != -1:
@@ -217,10 +238,22 @@ def main():
         br_velocity = br.getVelocity()
         average_right_velocity = (fr_velocity + br_velocity) / 2.0
 
-        estimated_orientation += calculate_orientation_change(average_left_velocity, average_right_velocity, 0.1, TIME_STEP)
+        estimated_orientation_using_wheels += calculate_orientation_change_using_wheels(average_left_velocity, average_right_velocity, 0.1, TIME_STEP)
         
-        orientation = get_comp_angle([starting_orientation, estimated_orientation])
+        orientation_using_wheels = get_comp_angle([starting_orientation, estimated_orientation_using_wheels])
         
+
+        ## USE LIDAR TO ESTIMATE ORIENTATION CHANGE
+        current_scan = lidar_values
+        if previous_scan is not None:
+            estimated_orientation_using_lidar += calculate_orientation_change_using_lidar(previous_scan, current_scan)
+        
+        previous_scan = current_scan
+
+        orientation_using_lidar = get_comp_angle([starting_orientation, estimated_orientation_using_lidar])
+
+        # AVERAGE THE TWO ESTIMATES
+        orientation = (orientation_using_lidar + orientation_using_wheels) / 2.0
 
         gpsX = round(gps_values[0], 3)
         gpsY = round(gps_values[2], 3)
@@ -232,7 +265,7 @@ def main():
         
         #Create new dictionary entry if cell unencountered
         if mainMap.cellTable.get(coords) is None:
-            mainMap.cellTable[coords] = MapCell(mappedX, mappedY, None, None, None, None)    
+            mainMap.cellTable[coords] = MapCell(mappedX, mappedY, None, None, None, None)   
         
         #Manipulate current cell
         mainMap.currCell = mainMap.cellTable.get(coords)
