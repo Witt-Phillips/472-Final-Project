@@ -1,7 +1,4 @@
 <h1 align="center">CPSC 472 Final Project</h1>
-
----
-
 <h2 align="center"> Table of Contents </h2>
 
 - [Getting Webots to work with PyCharm](#getting-webots-to-work-with-pycharm)
