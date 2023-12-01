@@ -36,6 +36,9 @@ Once you have PyCharm installed you can open the project folder in Pycharm with 
 > NOTE: I saved this configuration by checking the "stoe as project file" box and saving it in the .idea/runConfigurations folder so that it can be shared with the rest of the team, you should just be able to add it but I wanted to let you know the process
 >> Also, my directory git is linked to "cpsc472/" so if you see this in a path it would be the "472-Final-Project/" folder in the repo if you just pulled straight from GitHub
 ![Alt text](refs/image-2.png)
+#### 3. The last thing we need to change is the Webots controller within the Youbot note in the scene tree
+>- Open the scene tree and click on the youbot node
+>- In the properties window on the right, click on the "Controller" and in the smaller dropdown menu select **\<extern>**, this should already be selected if you loaded the world file from the lib/Zombie world/worlds/zombiesAndBerries.wbt but I'm not entirely sure ![Alt text](refs/image7.png)
 #### 3. Now you should be able to run the controller file with the profiler 
 > - Run > Profile 'calbick_controller_template' or simply click the play button in the blue profiler box 
 > > This will start a python console and run the code initializing python ![Alt text](refs/image-4.png)
