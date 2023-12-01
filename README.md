@@ -1,22 +1,43 @@
 <h1 align="center">CPSC 472 Final Project</h1>
 
 ---
-## Getting Webots to work with PyCharm
-### Useful links:
 
+<p style="font-size:200%;;"> Table of Contents </p>
+
+- [Getting Webots to work with PyCharm](#getting-webots-to-work-with-pycharm)
+  - [Useful links:](#useful-links)
+  - [Downloading PyCharm](#downloading-pycharm)
+  - [Workspace Settings](#workspace-settings)
+    - [1. Set PyCharm Project Settings](#1-set-pycharm-project-settings)
+    - [2. Set up PyCharm Profiler](#2-set-up-pycharm-profiler)
+    - [3. Set Webots Controller to External](#3-set-webots-controller-to-external)
+    - [4. Running the Interface](#4-running-the-interface)
+      - [4.1 Pycharm Scientific Mode](#41-pycharm-scientific-mode)
+  - [Using the Interface](#using-the-interface)
+- [Running Webots 2021b on arm64](#running-webots-2021b-on-arm64)
+  
+---
+
+## Getting Webots to work with PyCharm
+
+### Useful links:
 - [Webots, Using your IDE](https://cyberbotics.com/doc/guide/using-your-ide?tab-os=macos&tab-language=python)
 - [Webots, Running and External Controller](https://cyberbotics.com/doc/guide/running-extern-robot-controllers?version=R2021b&tab-language=python&tab-os=macos)
-
+  
+### Downloading PyCharm
 So you can get Pycharm from [JetBrains](https://www.jetbrains.com/community/education/#students) for free if you have a student email; I think there is just a slight email and verification process.
 
 Once you have PyCharm installed you can open the project folder in Pycharm with the base directory being the repo folder from GitHub. The scripts that I have been working with are all in the lib/ folder and the binaries are in the bin/ folder.
 
----
-## To start off there are some things in settings that you have to do:
-#### 1. Go to PyCharm > Settings -> Project: 472-Final-Project
-   -Make sure that the project interpreter is set to Python 3.8 in 472-Final-Project/bin/python
+### Workspace Settings
+
+#### 1. Set PyCharm Project Settings
+Go to PyCharm > Settings -> Project: 472-Final-Project
+- Make sure that the project interpreter is set to Python 3.8 in 472-Final-Project/bin/python
 ![Alt text](refs/image.png)
-#### 2. Set up the Profiler; Run > Edit Configurations ... > + > Python Profiler
+
+#### 2. Set up PyCharm Profiler
+Set up the Profiler; Run > Edit Configurations ... > + > Python Profiler
 >- Name it whatever you want
 >- Script: (the controller file that you want to run this with) e.g. im using it with 472-Final-Project/lib/Zombie World/controllers/calbick_controller_template/calbick_controller_template.py
 >- Now we have to set some environment variables so that the controller can find the Webots library
@@ -39,19 +60,24 @@ Once you have PyCharm installed you can open the project folder in Pycharm with 
 >> Also, my directory git is linked to "cpsc472/" so if you see this in a path it would be the "472-Final-Project/" folder in the repo if you just pulled straight from GitHub 
 ><br>
 
-#### 3. The last thing we need to change is the Webots controller within the Youbot note in the scene tree
+#### 3. Set Webots Controller to External
+The last thing we need to change is the Webots controller within the Youbot note in the scene tree
 >- Open the scene tree and click on the youbot node
 >- In the properties window on the right, click on the "Controller" and in the smaller dropdown menu select **\<extern>**, this should already be selected if you loaded the world file from the lib/Zombie world/worlds/zombiesAndBerries.wbt but I'm not entirely sure ![Alt text](refs/image7.png)
-#### 3. Now you should be able to run the controller file with the profiler 
+
+#### 4. Running the Interface
+Now you should be able to run the controller file with the profiler 
 > - Run > Profile 'calbick_controller_template' or simply click the play button in the blue profiler box 
 > > This will start a python console and run the code initializing python ![Alt text](refs/image-4.png)
 > - You won't have control of the console until you click the play button in Webots to start the simulation
-##### 3.1 A note on Pycharm
+##### 4.1 Pycharm Scientific Mode
 There is a mode called "Scientific Mode" (View > Scientific Mode) which is a useful way to run this for a couple reasons:
 - It has a built in console that you can use to run commands and see the output
 - It has a built in variable viewer that you can use to see the values of variables in the program
 - You can run the program line by line or in code blocks like in matlab by insterting #%% in the code; this allows you to run the block of code by pressing the green play button next to the block declaration
-#### 4. Now you can run the controller in Webots in an interactive way
+
+### Using the Interface
+Now you can run the controller in Webots in an interactive way
 > - I have been using the sanbox I put at the bottom of the controller file to test things out
 > ```python
 >[591]    #%% ----------- Sandbox -----------
@@ -96,4 +122,6 @@ Here's a video of me using it:
   <img src="refs/Pychar-Webots.gif" alt="temp" width="75%">
 </p>
 
+---
 
+## Running Webots 2021b on arm64
