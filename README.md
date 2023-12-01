@@ -44,7 +44,7 @@ Once you have PyCharm installed you can open the project folder in Pycharm with 
 > > This will start a python console and run the code initializing python ![Alt text](refs/image-4.png)
 > - You won't have control of the console until you click the play button in Webots to start the simulation
 ##### 3.1 A note on Pycharm
-There is a mode called "Scientific Mode" which is a useful way to run this for a couple reasons:
+There is a mode called "Scientific Mode" (View > Scientific Mode) which is a useful way to run this for a couple reasons:
 - It has a built in console that you can use to run commands and see the output
 - It has a built in variable viewer that you can use to see the values of variables in the program
 - You can run the program line by line or in code blocks like in matlab by insterting #%% in the code; this allows you to run the block of code by pressing the green play button next to the block declaration
