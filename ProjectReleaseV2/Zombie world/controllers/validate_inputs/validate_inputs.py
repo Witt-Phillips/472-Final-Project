@@ -15,6 +15,7 @@ from youbot_zombie import *
 import numpy as np
 import cv2
 import math
+
 _2PI = 2 * math.pi
 #--------------------------------------------------------------------------------
 
@@ -195,6 +196,7 @@ def main():
         compass_values = compass.getValues()
         
         orientation = get_comp_angle(compass_values)
+        print(orientation)
         gpsX = round(gps_values[0], 3)
         gpsY = round(gps_values[2], 3)
         
