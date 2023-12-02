@@ -672,7 +672,7 @@ def initplot(isolated_regions):
     return fig, mask_ax, rgb_ax, imag_ax
 
 def processImageBerry(ims,lidar):
-
+    pass
 def processImageZombie(ims,lidar):
     pass
 def processImageSoldid(ims,lidar):
@@ -803,7 +803,7 @@ def analyzeScene(map):
     zombies = processImageZombie(map, isolated_regions[zombie_colors])
 
 def lidar2image(map):
-
+    pass
 
 
 def sandbox_dc():
@@ -821,9 +821,9 @@ def sandbox_dc():
     lidar_objects = lidar2image(world_map)
 
     # If lidar is picking up objects in visible region of world map
-    if lidar_objects is not None
+    if lidar_objects is not None:
     # analy
-    analyzeScene(world_map)
+        analyzeScene(world_map)
 
 
 def sandbox_wp():
