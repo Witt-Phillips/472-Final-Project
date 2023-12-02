@@ -77,7 +77,12 @@ map = Map()
 #map.berry_prob_matrix.at['red', 'p20E'] = .75
 #print(map.berry_prob_matrix)
 map.observe_berry('red', 'p20E')
+map.observe_berry('pink', 'm20E')
+map.observe_berry('orange', 'p40H')
+map.observe_berry('yellow', 'arm')
+
 map.observe_berry('red', 'm20E')
+
 
 # map.observe_berry('pink', 'p20E')
 print("Berries Seen Matrix:\n", map.berries_seen_arr)
