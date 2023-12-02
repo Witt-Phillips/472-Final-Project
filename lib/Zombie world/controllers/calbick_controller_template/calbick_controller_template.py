@@ -672,7 +672,7 @@ def initplot(isolated_regions):
     return fig, mask_ax, rgb_ax, imag_ax
 
 def processImageBerry(ims,lidar):
-
+    pass
 def processImageZombie(ims,lidar):
     pass
 def processImageSoldid(ims,lidar):
@@ -721,15 +721,16 @@ def analyzeColor(map,plts=None):
         isolated_region = cv2.bitwise_and(rgb, rgb, mask=mask)
         isolated_regions[color] = isolated_region
 
-    berry_colors  = ("red","yellow","pink","orange","purple")
-    zombie_colors = ("green","blue","aqua","purple")
-
-    berries = processImageBerry(map,isolated_regions[berry_colors])
-    zombies = processImageZombie(map,isolated_regions[zombie_colors])
+    # berry_colors  = ("red","yellow","pink","orange","purple")
+    # zombie_colors = ("green","blue","aqua","purple")
+    #
+    # berries = processImageBerry(map,isolated_regions[berry_colors])
+    # zombies = processImageZombie(map,isolated_regions[zombie_colors])
 
     plotStuff = True
     if plotStuff:
         if plts is None:
+            plt.ion()
             plts = initplot(isolated_regions)
             return plts
         else:
@@ -803,27 +804,31 @@ def analyzeScene(map):
     zombies = processImageZombie(map, isolated_regions[zombie_colors])
 
 def lidar2image(map):
+#%%
+    tmp = robot.step(TIME_STEP)
+    lidar_values = map.youbot.sensors["lidar"].getRangeImage()
 
+    for i in range(len(lidar_values)):
+        if lidar_values[i] != float('inf') and lidar_values[i] != 0.0:
+            print(lidar_values[i])
+    pass
 
 
 def sandbox_dc():
 # %% Sandbox for Dan
 # Create a figure with subplots
-
     plts = analyzeColor(world_map)
 #%%
     tmp = robot.step(TIME_STEP)
     analyzeColor(world_map,plts)
 
 #%% assess object
-
-
     lidar_objects = lidar2image(world_map)
 
     # If lidar is picking up objects in visible region of world map
-    if lidar_objects is not None
+    if lidar_objects is not None:
     # analy
-    analyzeScene(world_map)
+        analyzeScene(world_map)
 
 
 def sandbox_wp():
