@@ -672,7 +672,7 @@ def initplot(isolated_regions):
     return fig, mask_ax, rgb_ax, imag_ax
 
 def processImageBerry(ims,lidar):
-
+    pass
 def processImageZombie(ims,lidar):
     pass
 def processImageSoldid(ims,lidar):
@@ -680,7 +680,7 @@ def processImageSoldid(ims,lidar):
 def lidarDetect(map):
     pass
 def analyzeColor(map,plts=None):
-
+#%%
     # Explore Back Camera Image Processing
     rgb, hsv = pullFrame(map.youbot)
 
@@ -714,7 +714,7 @@ def analyzeColor(map,plts=None):
 
     masks["red"] = cv2.bitwise_or(masks["red1"], masks["red2"])
     del(masks["red1"])
-    del (masks["red2"])
+    del(masks["red2"])
 
     isolated_regions = {}
     for color, mask in masks.items():
@@ -724,8 +724,8 @@ def analyzeColor(map,plts=None):
     berry_colors  = ("red","yellow","pink","orange","purple")
     zombie_colors = ("green","blue","aqua","purple")
 
-    berries = processImageBerry(map,isolated_regions[berry_colors])
-    zombies = processImageZombie(map,isolated_regions[zombie_colors])
+    # berries = processImageBerry(map,isolated_regions[berry_colors])
+    # zombies = processImageZombie(map,isolated_regions[zombie_colors])
 
     plotStuff = True
     if plotStuff:
@@ -733,7 +733,7 @@ def analyzeColor(map,plts=None):
             plts = initplot(isolated_regions)
             return plts
         else:
-            fig,mask_ax,rgb_ax,imag_ax = plts[0],plts[1] ,plts[2],plts[3]
+            fig,mask_ax,rgb_ax,imag_ax = plts[0],plts[1],plts[2],plts[3]
             # Update each color region image
             for color, img in isolated_regions.items():
                 mask_ax[color].images[0].set_data(img)
@@ -799,17 +799,17 @@ def analyzeScene(map):
     berry_colors = ("red", "yellow", "pink", "orange", "purple")
     zombie_colors = ("green", "blue", "aqua", "purple")
 
-    berries = processImageBerry(map, isolated_regions[berry_colors])
-    zombies = processImageZombie(map, isolated_regions[zombie_colors])
+    berries = processImageBerry(map, camera_masks[berry_colors])
+    zombies = processImageZombie(map, camera_masks[zombie_colors])
 
 def lidar2image(map):
-
+    pass
 
 
 def sandbox_dc():
 # %% Sandbox for Dan
 # Create a figure with subplots
-
+    plt.ion()
     plts = analyzeColor(world_map)
 #%%
     tmp = robot.step(TIME_STEP)
@@ -821,7 +821,8 @@ def sandbox_dc():
     lidar_objects = lidar2image(world_map)
 
     # If lidar is picking up objects in visible region of world map
-    if lidar_objects is not None
+    if lidar_objects is not None:
+        pass
     # analy
     analyzeScene(world_map)
 
