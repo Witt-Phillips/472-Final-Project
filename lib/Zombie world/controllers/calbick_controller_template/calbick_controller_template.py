@@ -673,6 +673,7 @@ def initplot(isolated_regions):
 
 def processImageBerry(ims,lidar):
     pass
+    pass
 def processImageZombie(ims,lidar):
     pass
 def processImageSoldid(ims,lidar):
@@ -824,7 +825,7 @@ def sandbox_dc():
     if lidar_objects is not None:
         pass
     # analy
-    analyzeScene(world_map)
+        analyzeScene(world_map)
 
 
 def sandbox_wp():
