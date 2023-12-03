@@ -59,7 +59,6 @@ class Map:
         weighted_average = (prob_effect_1 * score_1) + (prob_effect_2 * score_2)
         return weighted_average
 
-
 def second_largest_column(row):
         return sorted(row.index, key=row.get, reverse=True)[1]
  
