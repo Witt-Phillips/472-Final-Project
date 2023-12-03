@@ -29,6 +29,7 @@ class Map:
         self.prior = to_df(prior)
         self.count = to_df(count)
 
+# to be a part of the berry object
     def priority_score(self, color, health, energy, distance):
         #Get effect1 (likely primary) and effect 2 (likely secondary), and their probabilities
         seen_array = self.count.loc[color, :] != 0
@@ -46,19 +47,18 @@ class Map:
 
         #priority score by effect
         score_1 = priority_score_formula(self.weights.at[effect_1, "health"],
-                                         self.weights.at[effect_1, "energy"],
-                                         self.weights.at[effect_1, "dist"],
-                                         health, energy, distance)
+                                            self.weights.at[effect_1, "energy"],
+                                            self.weights.at[effect_1, "dist"],
+                                            health, energy, distance)
         score_2 = priority_score_formula(self.weights.at[effect_2, "health"],
-                                         self.weights.at[effect_2, "energy"],
-                                         self.weights.at[effect_2, "dist"],
-                                         health, energy, distance)
+                                            self.weights.at[effect_2, "energy"],
+                                            self.weights.at[effect_2, "dist"],
+                                            health, energy, distance)
         
         #replace pro_effect_2 with 1 - prob_effect_1 (should really factor in all possible effects,
         #but will be small and don't really have time...)
         weighted_average = (prob_effect_1 * score_1) + (prob_effect_2 * score_2)
         return weighted_average
-
 
 def second_largest_column(row):
         return sorted(row.index, key=row.get, reverse=True)[1]
@@ -176,3 +176,7 @@ if 0:
     # Display the plot
     plt.tight_layout()
     plt.show()
+
+
+
+    #PRIORITY SCORE IN BERRY OBJECT
