@@ -78,7 +78,14 @@ class baseObject():
         self.map_rc = self.hash_gps_to_map()
         self.origin_xy = origin_xy
         # WP Added dist to youbout - check!
-        #self.dist2youbot = distance(self.map.youbot.gps_xy, self.gps_xy)
+        if self.map.youbot is not None:
+            if self.map.youbot.gps_xy is not None and self.gps_xy is not None:
+                dist = distance(self.map.youbot.gps_xy, self.gps_xy)
+            else:
+                dist = None
+        else:
+            dist = None
+        self.dist2youbot = dist
 
     def hash_gps_to_map(self):
         if self.gps_xy[1] is not None:
@@ -112,14 +119,14 @@ class baseObject():
         # Remove this object from cell dictionary with old hash string
         self.map.cell_object_table[old_rc.__str__()].remove(self)
 
-
 # Changed structure, added observed effect
 class berryObject(baseObject):
-    def __init__(self, map, berry_color=None, effect_type=None, gps_xy=None):
-        super().__init__(map, gps_xy, 'berry')
+    def __init__(self, map, dist=None, berry_color=None, effect_type=None, gps_xy=None):
+        super().__init__(map, gps_xy, dist, 'berry')
         self.color = berry_color
         self.effect = effect_type
-        self.priority = None
+        self.dist2youbot = dist
+        self.priority = self.priority_score()
         map.world_berry_list.append(self)
 
     def observe_effect(self, obs_effect):
@@ -135,11 +142,46 @@ class berryObject(baseObject):
         self.map.prior = to_df(prior)
         self.map.count = to_df(count)
 
+    def priority_score(self):
+        # Get effect1 (likely primary) and effect 2 (likely secondary), and their probabilities
+        seen_array = self.map.count.loc[self.color, :] != 0
+
+        effect_1 = self.map.prior.iloc[rows.index(self.color)].idxmax()
+        prob_effect_1 = self.map.prior.at[self.color, effect_1]
+        seen_array[effect_1] = False
+
+        effect_2 = seen_array.idxmax()
+        if seen_array.max() == 0:
+            effect_2 = second_largest_column(self.map.prior.iloc[rows.index(self.color)])
+            # print("effect 2 defaulted:", effect_2)
+        prob_effect_2 = self.map.prior.at[self.color, effect_2]
+
+        health = self.map.youbot.robot_info[0]
+        energy = self.map.youbot.robot_info[1]
+        dist = distance(self.gps_xy, self.map.youbot.gps_xy)
+
+        # priority score by effect
+        score_1 = priority_score_formula(self.map.weights.at[effect_1, "health"],
+                                         self.map.weights.at[effect_1, "energy"],
+                                         self.map.weights.at[effect_1, "dist"],
+                                         health, energy, dist)
+        score_2 = priority_score_formula(self.map.weights.at[effect_2, "health"],
+                                         self.map.weights.at[effect_2, "energy"],
+                                         self.map.weights.at[effect_2, "dist"],
+                                         health, energy, dist)
+
+        # replace pro_effect_2 with 1 - prob_effect_1 (should really factor in all possible effects,
+        # but will be small and don't really have time...)
+        weighted_average = (prob_effect_1 * score_1) + (prob_effect_2 * score_2)
+        return weighted_average
+
 
 class youbotObject(baseObject):
     def __init__(self, map, wb_robot=None, sensors=None, wheels=None, gps_xy=None, init_gps_xy=None):
         super().__init__(map, gps_xy, 'youbot')
         self.wb_robot = wb_robot
+        #WP Added Robot Info parameter
+        self.robot_info = None
         self.sensors = sensors
         self.wheels = wheels
         self.init_gps = init_gps_xy
@@ -336,49 +378,19 @@ def update_plot(map, fig, ax):
     fig.canvas.draw()
     fig.canvas.flush_events()
 
-##Probability Utility Functions
-##### Probability Utility Functions ####
+# Probability Utility Functions
 
 
 def second_largest_column(row):
     return sorted(row.index, key=row.get, reverse=True)[1]
 
 
-#Priority Score
-def priority_score(self, color, health, energy, distance):
-    # Get effect1 (likely primary) and effect 2 (likely secondary), and their probabilities
-    seen_array = self.count.loc[color, :] != 0
-
-    effect_1 = self.prior.iloc[rows.index(color)].idxmax()
-    prob_effect_1 = self.prior.at[color, effect_1]
-    seen_array[effect_1] = False
-
-    effect_2 = seen_array.idxmax()
-    if seen_array.max() == 0:
-        effect_2 = second_largest_column(self.prior.iloc[rows.index(color)])
-        # print("effect 2 defaulted:", effect_2)
-    prob_effect_2 = self.prior.at[color, effect_2]
-
-    # priority score by effect
-    score_1 = priority_score_formula(self.weights.at[effect_1, "health"],
-                                     self.weights.at[effect_1, "energy"],
-                                     self.weights.at[effect_1, "dist"],
-                                     health, energy, distance)
-    score_2 = priority_score_formula(self.weights.at[effect_2, "health"],
-                                     self.weights.at[effect_2, "energy"],
-                                     self.weights.at[effect_2, "dist"],
-                                     health, energy, distance)
-
-    # replace pro_effect_2 with 1 - prob_effect_1 (should really factor in all possible effects,
-    # but will be small and don't really have time...)
-    weighted_average = (prob_effect_1 * score_1) + (prob_effect_2 * score_2)
-    return weighted_average
-
+# Priority Score
 
 def priority_score_formula(w_h, w_e, w_d, h, e, d):
     health_score = score(w_h, h)
     energy_score = score(w_e, e)
-    dist_score = score(w_d, (10 * d))
+    dist_score = score(w_d, 5 * d)
     return (health_score + energy_score + dist_score) / 30000
 
 
@@ -951,42 +963,40 @@ def sandbox_wp():
 # SIMULATE using data structure
 
     posterior = random_posterior()
-    map = worldMapObject()
-    map.init_gps = [random.uniform(1, 10), random.uniform(1, 10)]
-
-    nsamples = 2
-
-    #Initial Testing
-    print("Init prior\n", map.prior)
-    print("Init weights\n", map.weights)
+    world_map.init_gps = [random.uniform(1, 10), random.uniform(1, 10)]
+    world_map.youbot.gps_xy = [youbot.sensors["gps"].getValues()[0],youbot.sensors["gps"].getValues()[2]]
+    nsamples = 5
 
     for i in range(nsamples):
         draw = drawfromposterior(posterior)
         color = rows[draw[0]]
         effect = cols[draw[1]]
-        #Observe base object
-        random_coords = [random.uniform(1, 10), random.uniform(1, 10)]
-        base_obj = baseObject(map, random_coords, 'berry', random_coords)
-        #Validate Berry Color
-        berry_obj = berryObject(map, color)
-        #Observe Berry
+
+        # Observe base object
+        random_coords = [random.uniform(-8, -4), random.uniform(-5, 0)]
+        base_obj = baseObject(world_map, random_coords)
+        berry_obj = berryObject(dist=base_obj.dist2youbot,
+                                berry_color=color,
+                                map=world_map,
+                                gps_xy=random_coords)
+
+        #Print priority score before observation
+        p_score = berry_obj.priority_score()
+        print("Priority score for", berry_obj.color,
+              "at dist", round(berry_obj.dist2youbot, 2), "is", round(p_score, 2))
+
+        # Observe Berry
         berry_obj.observe_effect(effect)
 
-    print("Count:\n", map.count)
-    print("Posterior\n", map.prior)
+    print("Count:\n", world_map.count)
+    print("Posterior\n", world_map.prior)
 
-    #print("Priority score: Red, H:50 E:50 D: 1", map.priority_score("red", 100, 100, 1))
-    # print("Priority score: Red, H:50 E:50 D: 1", map.priority_score("red", 50, 100, 1))
-    # print("Priority score: Red, H:50 E:50 D: 1", map.priority_score("red", 100, 50, 1))
-    # print("Priority score: Red, H:50 E:50 D: 1", map.priority_score("red", 10, 100, .1))
-    # print("Priority score: Red, H:50 E:50 D: 1", map.priority_score("red", 100, 10, .1))
-    # print("Priority score: Orange, H:50 E:50 D: 1", map.priority_score("orange", 100, 10, .1))
+    plot_toggle = False
+    if plot_toggle:
+        # Plotting
+        count = world_map.count
+        prior = world_map.prior
 
-    # Plotting
-    count = map.count
-    prior = map.prior
-
-    if 0:
         # Create subplots
         fig, axes = plt.subplots(1, 3, figsize=(25, 8))
 
@@ -999,6 +1009,14 @@ def sandbox_wp():
 
         axes[2].imshow(prior)
         axes[2].set_title("Prior")
+
+#Usage for berry probability:
+    # On LiDAR scan: create baseObject() instance with positional info
+    # On color confirmation: replace with BerryObject() instance.
+        # Appends berry to map.berryList
+        # Priority score calculated. Retrievable at berry_obj.priority
+    # On observation: Call mathod berry_obj.observe_effect(effect)
+        #Updates probability map (map.prior)
 
 def sandbox_ma():
     # %% Sandbox for Mohammad
