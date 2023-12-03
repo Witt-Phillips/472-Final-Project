@@ -4,23 +4,66 @@ import pandas as pd
 
 rows = ["red", "pink", "orange", "yellow"]
 cols = ["p20E", "m20E", "p40H", "arm"]
-
+weight_names = ["health", "energy", "dist"]
+weights = np.array(([[0.5, 0.5, 0.5],
+                    [0.5, 0.5, 0.5],
+                    [0.5, 0.5, 0.5],
+                    [0.5, 0.5, 0.5]]))
 #Classes
 class Map:
     def __init__(self):
-        self.prior = np.ones((4, 4)) / 4
-        self.count = np.zeros((4, 4))
+        self.prior = to_df(np.ones((4, 4)) / 4)
+        self.count = to_df(np.zeros((4, 4)))
         self.draws = np.empty((0, 2))
+        self.weights = pd.DataFrame(weights, index=cols, columns=weight_names)
+    
+    def observe_berry_map(self, color, effect):
+        prior = self.prior.values
+        count = self.count.values
 
-# Initialize the prior as a 4x4 dually stochastic matrix
-prior = np.ones((4, 4)) / 4
+        draw = np.array([rows.index(color), cols.index(effect)])
+        self.draws = np.vstack((self.draws, draw))
+        count[draw[0], draw[1]] += 1
+        prior = update_prior(draw, prior)
 
-initial_posterior = np.array([
-    [.75, 0, .25, 0],
-    [0, .25, .75, 0],
-    [0, .75, 0, .25],
-    [.25, 0, 0, .75]
-])
+        self.prior = to_df(prior)
+        self.count = to_df(count)
+
+    def priority_score(self, color, health, energy, distance):
+        #Get effect1 (likely primary) and effect 2 (likely secondary), and their probabilities
+        seen_array = self.count.loc[color, :] != 0
+        
+        effect_1 = self.prior.iloc[rows.index(color)].idxmax()
+        prob_effect_1 = self.prior.at[color, effect_1]
+        seen_array[effect_1] = False
+        
+        effect_2 = seen_array.idxmax()
+        prob_effect_2 = self.prior.at[color, effect_2]
+
+        #priority score by effect
+        score_1 = priority_score_formula(self.weights.at[effect_1, "health"],
+                                         self.weights.at[effect_1, "energy"],
+                                         self.weights.at[effect_1, "dist"],
+                                         health, energy, distance)
+        score_2 = priority_score_formula(self.weights.at[effect_2, "health"],
+                                         self.weights.at[effect_2, "energy"],
+                                         self.weights.at[effect_2, "dist"],
+                                         health, energy, distance)
+        
+        #replace pro_effect_2 with 1 - prob_effect_1 (should really factor in all possible effects,
+        #but will be small and don't really have time...)
+        weighted_average = (prob_effect_1 * score_1) + (prob_effect_2 * score_2)
+        return weighted_average
+   
+def priority_score_formula(w_h, w_e, w_d, h, e, d):
+    health_score = score(w_h, h)
+    energy_score = score(w_e, e)
+    dist_score   = score(w_d, (10 * d))
+    return (health_score + energy_score + dist_score) / 30000
+
+
+def score(weight, value):
+    return weight * ((100 - value) ** 2)
 
 def random_posterior():
     shuffled_matrix = initial_posterior.copy()
@@ -64,33 +107,42 @@ def to_df(matrix):
     return pd.DataFrame(matrix, index=rows, columns=cols)
 
 
-#Simulate
+#Simulate using data structure
+initial_posterior = np.array([
+    [.75, 0, .25, 0],
+    [0, .25, .75, 0],
+    [0, .75, 0, .25],
+    [.25, 0, 0, .75]
+])
+
 posterior = random_posterior()
-nsamples = 0
-count = np.zeros((4, 4))
-#draws = np.full((nsamples, 2), np.nan)
-draws = np.empty((0, 2))
+
+map = Map()
+nsamples = 10
+# print(map.prior)
+# print(map.weights)
 
 for i in range(nsamples):
     draw = drawfromposterior(posterior)
-    print(draw)
-    #draws[i, :] = draw
-    draws = np.vstack((draws, draw))
-    print(draws)
-    count[draw[0], draw[1]] += 1
-    prior = update_prior(draw, prior)
+    color = rows[draw[0]]
+    effect = cols[draw[1]]
+    map.observe_berry_map(color, effect)
 
-count, draws, prior = observe_berry("red", "p40H", count, draws, prior)
-count, draws, prior = observe_berry("red", "p20E", count, draws, prior)
-count, draws, prior = observe_berry("pink", "p20E", count, draws, prior)
+print(map.count)
+print(map.prior)
+print("Priority score: Red, H:50 E:50 D: 1", map.priority_score("red", 100, 100, 1))
+print("Priority score: Red, H:50 E:50 D: 1", map.priority_score("red", 50, 100, 1))
+print("Priority score: Red, H:50 E:50 D: 1", map.priority_score("red", 100, 50, 1))
+print("Priority score: Red, H:50 E:50 D: 1", map.priority_score("red", 10, 100, .1))
+print("Priority score: Red, H:50 E:50 D: 1", map.priority_score("red", 100, 10, .1))
+print("Priority score: Orange, H:50 E:50 D: 1", map.priority_score("orange", 100, 10, .1))
 
 
+#Plotting
+count = map.count
+prior = map.prior
 
-print(to_df(posterior))
-print(to_df(prior))
-print(to_df(count))
-
-if 1:
+if 0:
     # Create subplots
     fig, axes = plt.subplots(1, 3, figsize=(25, 8))
 
