@@ -37,7 +37,11 @@ class Map:
         prob_effect_1 = self.prior.at[color, effect_1]
         seen_array[effect_1] = False
         
+        
         effect_2 = seen_array.idxmax()
+        if seen_array.max() == 0:
+            effect_2 = second_largest_column(self.prior.iloc[rows.index(color)])
+            #print("effect 2 defaulted:", effect_2)
         prob_effect_2 = self.prior.at[color, effect_2]
 
         #priority score by effect
@@ -54,7 +58,11 @@ class Map:
         #but will be small and don't really have time...)
         weighted_average = (prob_effect_1 * score_1) + (prob_effect_2 * score_2)
         return weighted_average
-   
+
+
+def second_largest_column(row):
+        return sorted(row.index, key=row.get, reverse=True)[1]
+ 
 def priority_score_formula(w_h, w_e, w_d, h, e, d):
     health_score = score(w_h, h)
     energy_score = score(w_e, e)
@@ -118,7 +126,7 @@ initial_posterior = np.array([
 posterior = random_posterior()
 
 map = Map()
-nsamples = 10
+nsamples = 2
 # print(map.prior)
 # print(map.weights)
 
@@ -130,6 +138,7 @@ for i in range(nsamples):
 
 print(map.count)
 print(map.prior)
+
 print("Priority score: Red, H:50 E:50 D: 1", map.priority_score("red", 100, 100, 1))
 print("Priority score: Red, H:50 E:50 D: 1", map.priority_score("red", 50, 100, 1))
 print("Priority score: Red, H:50 E:50 D: 1", map.priority_score("red", 100, 50, 1))
