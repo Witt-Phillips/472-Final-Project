@@ -490,8 +490,8 @@ def init_youbot(map):
     }
 
     wheels = {
-        "font_right": fr,
-        "font_left": fl,
+        "front_right": fr,
+        "front_left": fl,
         "back_right": br,
         "back_left": bl,
     }
@@ -743,6 +743,7 @@ get_all_berry_pos(robot)
 # NOTE: must run once after moving in Webots manually to get the current sensor readings!
 
 tmp = robot.step(TIME_STEP)
+world_map.init_gps = [youbot.sensors["gps"].getValues()[0],youbot.sensors["gps"].getValues()[2]]
 
 
 #%%
@@ -958,57 +959,67 @@ def sandbox_dc():
 
 def sandbox_wp():
     # %% Sandbox for Witt
+    #init_youbot(world_map)
     tmp = robot.step(TIME_STEP)
 
 # SIMULATE using data structure
 
     posterior = random_posterior()
-    world_map.init_gps = [random.uniform(1, 10), random.uniform(1, 10)]
     world_map.youbot.gps_xy = [youbot.sensors["gps"].getValues()[0],youbot.sensors["gps"].getValues()[2]]
-    nsamples = 5
 
-    for i in range(nsamples):
-        draw = drawfromposterior(posterior)
-        color = rows[draw[0]]
-        effect = cols[draw[1]]
+    # Movement
+    youbot.wheels["front_right"].setVelocity(5.0)
+    youbot.wheels["front_left"].setVelocity(5.0)
+    youbot.wheels["back_right"].setVelocity(5.0)
+    youbot.wheels["back_left"].setVelocity(5.0)
 
-        # Observe base object
-        random_coords = [random.uniform(-8, -4), random.uniform(-5, 0)]
-        base_obj = baseObject(world_map, random_coords)
-        berry_obj = berryObject(dist=base_obj.dist2youbot,
-                                berry_color=color,
-                                map=world_map,
-                                gps_xy=random_coords)
+    # Probability
+    toggle_prob = False
+    if toggle_prob:
+        nsamples = 5
 
-        #Print priority score before observation
-        p_score = berry_obj.priority_score()
-        print("Priority score for", berry_obj.color,
-              "at dist", round(berry_obj.dist2youbot, 2), "is", round(p_score, 2))
+        for i in range(nsamples):
+            draw = drawfromposterior(posterior)
+            color = rows[draw[0]]
+            effect = cols[draw[1]]
 
-        # Observe Berry
-        berry_obj.observe_effect(effect)
+            # Observe base object
+            random_coords = [random.uniform(-8, -4), random.uniform(-5, 0)]
+            base_obj = baseObject(world_map, random_coords)
+            berry_obj = berryObject(dist=base_obj.dist2youbot,
+                                    berry_color=color,
+                                    map=world_map,
+                                    gps_xy=random_coords)
 
-    print("Count:\n", world_map.count)
-    print("Posterior\n", world_map.prior)
+            #Print priority score before observation
+            p_score = berry_obj.priority_score()
+            print("Priority score for", berry_obj.color,
+                  "at dist", round(berry_obj.dist2youbot, 2), "is", round(p_score, 2))
 
-    plot_toggle = False
-    if plot_toggle:
-        # Plotting
-        count = world_map.count
-        prior = world_map.prior
+            # Observe Berry
+            berry_obj.observe_effect(effect)
 
-        # Create subplots
-        fig, axes = plt.subplots(1, 3, figsize=(25, 8))
+        print("Count:\n", world_map.count)
+        print("Posterior\n", world_map.prior)
 
-        # Display the final updated prior
-        axes[0].imshow(posterior)
-        axes[0].set_title("Posterior")
+        plot_toggle = False
+        if plot_toggle:
+            # Plotting
+            count = world_map.count
+            prior = world_map.prior
 
-        axes[1].imshow(count)
-        axes[1].set_title("Berries Seen")
+            # Create subplots
+            fig, axes = plt.subplots(1, 3, figsize=(25, 8))
 
-        axes[2].imshow(prior)
-        axes[2].set_title("Prior")
+            # Display the final updated prior
+            axes[0].imshow(posterior)
+            axes[0].set_title("Posterior")
+
+            axes[1].imshow(count)
+            axes[1].set_title("Berries Seen")
+
+            axes[2].imshow(prior)
+            axes[2].set_title("Prior")
 
 #Usage for berry probability:
     # On LiDAR scan: create baseObject() instance with positional info
