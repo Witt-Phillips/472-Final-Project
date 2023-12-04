@@ -17,7 +17,7 @@ import pandas as pd
 import cv2
 import math
 import matplotlib.pyplot as plt
-from math import sin, cos
+from math import sin, cos, atan
 import random
 
 # Define Global Variables
@@ -141,6 +141,7 @@ class berryObject(baseObject):
 
         self.map.prior = to_df(prior)
         self.map.count = to_df(count)
+        self.map.world_berry_list = sorted(self.map.world_berry_list, key=lambda x: x.priority, reverse=True)
 
     def priority_score(self):
         # Get effect1 (likely primary) and effect 2 (likely secondary), and their probabilities
@@ -185,6 +186,7 @@ class youbotObject(baseObject):
         self.sensors = sensors
         self.wheels = wheels
         self.init_gps = init_gps_xy
+        self.bearing = None
         map.youbot = self
 
 class zombieObject(baseObject):
@@ -238,9 +240,21 @@ def getObjectRGB(object):
     return color_id
 
 
+def angle2object(youbot, object):
+    xdif = youbot.gps_xy[0] - object.gps_xy[0]
+    ydif = youbot.gps_xy[1] - object.gps_xy[1]
+    # Add pi / 2 to angle?
+    angle = youbot.bearing - atan(ydif / xdif)
+    factor = abs(angle // (2 * math.pi))
+    if factor != 0:
+        angle /= factor
+    if angle < 0:
+        angle = angle + (2 * math.pi)
+    print("Angle to obj:", angle * (180 / math.pi))
+    return angle
+
 def orient_to_object(youbot, object):
     pass
-
 
 ########## Utility functions
 
@@ -260,8 +274,10 @@ def convert_gps_to_map(gps_xy, map):
 
 
 def get_comp_angle(compass_values):
-    angle = math.atan2(compass_values[1], compass_values[0])
-    return angle + (_2pi * (angle < 0.0))
+    angle = math.atan2(compass_values[1], compass_values[0]) - (math.pi / 2)
+    if angle < 0:
+        angle = angle + (2 * math.pi)
+    return angle
 
 
 def map_lidar(map, beam_number, magnitude):
@@ -379,6 +395,9 @@ def update_plot(map, fig, ax):
     fig.canvas.flush_events()
 
 # Probability Utility Functions
+
+def to_rad(deg):
+    return deg * (math.pi / 180)
 
 
 def second_largest_column(row):
@@ -963,18 +982,13 @@ def sandbox_wp():
     tmp = robot.step(TIME_STEP)
 
 # SIMULATE using data structure
-
     posterior = random_posterior()
-    world_map.youbot.gps_xy = [youbot.sensors["gps"].getValues()[0],youbot.sensors["gps"].getValues()[2]]
-
-    # Movement
-    youbot.wheels["front_right"].setVelocity(5.0)
-    youbot.wheels["front_left"].setVelocity(5.0)
-    youbot.wheels["back_right"].setVelocity(5.0)
-    youbot.wheels["back_left"].setVelocity(5.0)
+    world_map.youbot.gps_xy = [youbot.sensors["gps"].getValues()[0], youbot.sensors["gps"].getValues()[2]]
+    world_map.world_berry_list = []
+    world_map.youbot.bearing = get_comp_angle(world_map.youbot.sensors["compass"].getValues())
 
     # Probability
-    toggle_prob = False
+    toggle_prob = True
     if toggle_prob:
         nsamples = 5
 
@@ -999,6 +1013,11 @@ def sandbox_wp():
             # Observe Berry
             berry_obj.observe_effect(effect)
 
+        # Sort priority list
+        world_map.world_berry_list = sorted(world_map.world_berry_list, key=lambda x: x.priority, reverse=True)
+        for berry in world_map.world_berry_list:
+            print("Color:", berry.color, "Dist:", berry.dist2youbot, "Priority:", berry.priority)
+
         print("Count:\n", world_map.count)
         print("Posterior\n", world_map.prior)
 
@@ -1021,6 +1040,51 @@ def sandbox_wp():
             axes[2].imshow(prior)
             axes[2].set_title("Prior")
 
+    # Movement
+    toggle_move = True
+    # %% Move Sim
+    if toggle_move:
+        steps = 50
+
+        #identify berry to seek
+        berry2seek = world_map.world_berry_list[0]
+
+        for i in range(steps):
+            tmp = robot.step(TIME_STEP)
+            youbot.gps_xy = [youbot.sensors["gps"].getValues()[0], youbot.sensors["gps"].getValues()[2]]
+            youbot.bearing = get_comp_angle(world_map.youbot.sensors["compass"].getValues())
+            angle = angle2object(youbot, berry2seek)
+            berry2seek.dist2youbot = distance(youbot.gps_xy, berry2seek.gps_xy)
+            print(angle)
+
+            # Print testing
+            print("Angle to obj:", angle * (180 / math.pi))
+            print("Dist to berry:", berry2seek.dist2youbot)
+            print("Orientation:", youbot.bearing * (180 / math.pi))
+            print("Youbot:", youbot.gps_xy)
+            print("Object:", berry2seek.gps_xy)
+
+            if berry2seek.dist2youbot < .2:
+                print("Berry reached!")
+                youbot.wheels["front_right"].setVelocity(0.0)
+                youbot.wheels["front_left"].setVelocity(0.0)
+                youbot.wheels["back_right"].setVelocity(0.0)
+                youbot.wheels["back_left"].setVelocity(0.0)
+            elif angle < 0.17:
+                youbot.wheels["front_right"].setVelocity(8.0)
+                youbot.wheels["front_left"].setVelocity(8.0)
+                youbot.wheels["back_right"].setVelocity(8.0)
+                youbot.wheels["back_left"].setVelocity(8.0)
+            elif angle > math.pi:
+                youbot.wheels["front_right"].setVelocity(8.0)
+                youbot.wheels["front_left"].setVelocity(1.0)
+                youbot.wheels["back_right"].setVelocity(8.0)
+                youbot.wheels["back_left"].setVelocity(1.0)
+            else:
+                youbot.wheels["front_right"].setVelocity(1.0)
+                youbot.wheels["front_left"].setVelocity(8.0)
+                youbot.wheels["back_right"].setVelocity(1.0)
+                youbot.wheels["back_left"].setVelocity(8.0)
 #Usage for berry probability:
     # On LiDAR scan: create baseObject() instance with positional info
     # On color confirmation: replace with BerryObject() instance.
@@ -1028,6 +1092,7 @@ def sandbox_wp():
         # Priority score calculated. Retrievable at berry_obj.priority
     # On observation: Call mathod berry_obj.observe_effect(effect)
         #Updates probability map (map.prior)
+
 
 def sandbox_ma():
     # %% Sandbox for Mohammad
