@@ -86,6 +86,7 @@ class baseObject():
         else:
             dist = None
         self.dist2youbot = dist
+        self.angle2youbot = None
 
     def hash_gps_to_map(self):
         if self.gps_xy[1] is not None:
@@ -244,17 +245,41 @@ def angle2object(youbot, object):
     xdif = youbot.gps_xy[0] - object.gps_xy[0]
     ydif = youbot.gps_xy[1] - object.gps_xy[1]
     # Add pi / 2 to angle?
-    angle = youbot.bearing - atan(ydif / xdif)
+    angle = math.atan2(ydif, xdif) - youbot.bearing + (math.pi / 2)
     factor = abs(angle // (2 * math.pi))
     if factor != 0:
         angle /= factor
     if angle < 0:
         angle = angle + (2 * math.pi)
-    print("Angle to obj:", angle * (180 / math.pi))
+    #print("Angle to obj:", angle * (180 / math.pi))
     return angle
 
-def orient_to_object(youbot, object):
-    pass
+
+def path_to_object(youbot, object):
+
+    angle = object.angle2youbot
+
+    if object.dist2youbot < .2:
+        print("Berry reached!")
+        youbot.wheels["front_right"].setVelocity(0.0)
+        youbot.wheels["front_left"].setVelocity(0.0)
+        youbot.wheels["back_right"].setVelocity(0.0)
+        youbot.wheels["back_left"].setVelocity(0.0)
+    elif angle < to_rad(10):
+        youbot.wheels["front_right"].setVelocity(8.0)
+        youbot.wheels["front_left"].setVelocity(8.0)
+        youbot.wheels["back_right"].setVelocity(8.0)
+        youbot.wheels["back_left"].setVelocity(8.0)
+    elif angle > math.pi:
+        youbot.wheels["front_right"].setVelocity(8.0)
+        youbot.wheels["front_left"].setVelocity(-8.0)
+        youbot.wheels["back_right"].setVelocity(8.0)
+        youbot.wheels["back_left"].setVelocity(-8.0)
+    else:
+        youbot.wheels["front_right"].setVelocity(-8.0)
+        youbot.wheels["front_left"].setVelocity(8.0)
+        youbot.wheels["back_right"].setVelocity(-8.0)
+        youbot.wheels["back_left"].setVelocity(8.0)
 
 ########## Utility functions
 
@@ -998,7 +1023,7 @@ def sandbox_wp():
             effect = cols[draw[1]]
 
             # Observe base object
-            random_coords = [random.uniform(-8, -4), random.uniform(-5, 0)]
+            random_coords = [random.uniform(-10, 10), random.uniform(-10, 10)]
             base_obj = baseObject(world_map, random_coords)
             berry_obj = berryObject(dist=base_obj.dist2youbot,
                                     berry_color=color,
@@ -1044,47 +1069,27 @@ def sandbox_wp():
     toggle_move = True
     # %% Move Sim
     if toggle_move:
-        steps = 50
+        steps = 40
 
         #identify berry to seek
         berry2seek = world_map.world_berry_list[0]
 
         for i in range(steps):
+            #Update Sensors
             tmp = robot.step(TIME_STEP)
             youbot.gps_xy = [youbot.sensors["gps"].getValues()[0], youbot.sensors["gps"].getValues()[2]]
             youbot.bearing = get_comp_angle(world_map.youbot.sensors["compass"].getValues())
-            angle = angle2object(youbot, berry2seek)
+            berry2seek.angle2youbot = angle2object(youbot, berry2seek)
             berry2seek.dist2youbot = distance(youbot.gps_xy, berry2seek.gps_xy)
-            print(angle)
 
             # Print testing
-            print("Angle to obj:", angle * (180 / math.pi))
+            print("Angle to obj:", berry2seek.angle2youbot * (180 / math.pi))
             print("Dist to berry:", berry2seek.dist2youbot)
             print("Orientation:", youbot.bearing * (180 / math.pi))
             print("Youbot:", youbot.gps_xy)
             print("Object:", berry2seek.gps_xy)
 
-            if berry2seek.dist2youbot < .2:
-                print("Berry reached!")
-                youbot.wheels["front_right"].setVelocity(0.0)
-                youbot.wheels["front_left"].setVelocity(0.0)
-                youbot.wheels["back_right"].setVelocity(0.0)
-                youbot.wheels["back_left"].setVelocity(0.0)
-            elif angle < 0.17:
-                youbot.wheels["front_right"].setVelocity(8.0)
-                youbot.wheels["front_left"].setVelocity(8.0)
-                youbot.wheels["back_right"].setVelocity(8.0)
-                youbot.wheels["back_left"].setVelocity(8.0)
-            elif angle > math.pi:
-                youbot.wheels["front_right"].setVelocity(8.0)
-                youbot.wheels["front_left"].setVelocity(1.0)
-                youbot.wheels["back_right"].setVelocity(8.0)
-                youbot.wheels["back_left"].setVelocity(1.0)
-            else:
-                youbot.wheels["front_right"].setVelocity(1.0)
-                youbot.wheels["front_left"].setVelocity(8.0)
-                youbot.wheels["back_right"].setVelocity(1.0)
-                youbot.wheels["back_left"].setVelocity(8.0)
+            path_to_object(youbot, berry2seek)
 #Usage for berry probability:
     # On LiDAR scan: create baseObject() instance with positional info
     # On color confirmation: replace with BerryObject() instance.
