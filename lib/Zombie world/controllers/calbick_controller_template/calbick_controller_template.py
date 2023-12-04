@@ -56,7 +56,7 @@ class worldMapObject:
         self.cell_properties_list = []
 
         # Init GPS (to base map on)
-        self.init_gps = ()
+        self.init_gps = None
 
         # Berry Probability
         self.prior = to_df(np.ones((4, 4)) / 4)
@@ -69,13 +69,14 @@ class baseObject():
     def __init__(self, map, gps_xy=None, typeid=None, origin_xy=None):
         if gps_xy is None:
             gps_xy = [None, None]
-        self.map = map
-        self.typeid = typeid
+        self.map       = map
+        self.typeid    = typeid
         self.object_id = id(self)
         self.cell_idx = None
         self.cell_hash = None
         self.gps_xy = gps_xy
-        self.map_rc = self.hash_gps_to_map()
+        # self.map_rc = self.hash_gps_to_map()
+
         self.origin_xy = origin_xy
         # WP Added dist to youbout - check!
         if self.map.youbot is not None:
@@ -86,13 +87,14 @@ class baseObject():
         else:
             dist = None
         self.dist2youbot = dist
+    @property
+    def init_gps(self):
+        return self.map.init_gps
 
-    def hash_gps_to_map(self):
-        if self.gps_xy[1] is not None:
+    @property
+    def map_rc(self):
+        if self.gps_xy[0] is not None:
             map_rc = convert_gps_to_map(self.gps_xy, self.map)
-            # Update object worldMap if necessary - ERROR - cannot be part of initialization
-            # if self.map_rc != map_rc:
-            #     self.update_cell_table(map_rc)
             return map_rc
         else:
             return None
@@ -184,8 +186,18 @@ class youbotObject(baseObject):
         self.robot_info = None
         self.sensors = sensors
         self.wheels = wheels
-        self.init_gps = init_gps_xy
+
+        # self.orientation = get_comp_angle(self)
         map.youbot = self
+
+    @property
+    def orientation(self):
+        return get_comp_angle(self.sensors["compass"].getValues())
+
+    @property
+    def gps_xy(self):
+        xy = [round(youbot.sensors["gps"].getValues()[i] , 3) for i in [0,2]]
+        return xy
 
 class zombieObject(baseObject):
     def __init__(self, map, zombie_color=None, gps_xy=None, typeid='zombie'):
@@ -496,11 +508,9 @@ def init_youbot(map):
         "back_left": bl,
     }
 
-    youbot = youbotObject(map)
-    youbot.wb_robot = robot
+    youbot = youbotObject(map,sensors=sensors,wheels=wheels)
+    youbot.wb_robot   = robot
     youbot.robot_info = robot_info
-    youbot.sensors = sensors
-    youbot.wheels = wheels
 
     map.timestep = timestep
 
@@ -556,7 +566,7 @@ def main(simparams=None):
                 # mainMap.map_lidar(i, lidar_values[i], orientation)
 
         # if plotMap:
-        #     new_objects = get_objects_to_update(world_map)
+        #     new_objects = get_objects_to_update(map)
         #
         #     update_plot(map, new_objects, ax)
 
@@ -720,12 +730,12 @@ def start_sim():
 # %% ----------- Sandbox -----------
 
 # Initialize map
-world_map = worldMapObject()
+map = worldMapObject()
 
 # Initialize youbot in world with sensors
-youbot   = init_youbot(world_map)
+youbot   = init_youbot(map)
 robot    = youbot.wb_robot
-timestep = world_map.timestep
+timestep = map.timestep
 
 # Stuff that they put in I believe
 passive_wait(0.1, robot, timestep)
@@ -743,7 +753,12 @@ get_all_berry_pos(robot)
 # NOTE: must run once after moving in Webots manually to get the current sensor readings!
 
 tmp = robot.step(TIME_STEP)
-world_map.init_gps = [youbot.sensors["gps"].getValues()[0],youbot.sensors["gps"].getValues()[2]]
+map.init_gps = [youbot.sensors["gps"].getValues()[0], youbot.sensors["gps"].getValues()[2]]
+
+def runstep(input=None):
+    tmp = robot.step(TIME_STEP)
+    if input is not None:
+        return input
 
 
 #%%
@@ -876,7 +891,6 @@ def analyzeColor(map,plts=None):
             fig.canvas.draw()
             fig.canvas.flush_events()
 
-
 def isolateCameraRegions(map):
     # Explore Back Camera Image Processing
     rgb, hsv = pullFrame(map.youbot)
@@ -930,6 +944,7 @@ def analyzeScene(map):
     berries = processImageBerry(map, isolated_regions[berry_colors])
     zombies = processImageZombie(map, isolated_regions[zombie_colors])
 
+
 def lidar2image(map):
 #%%
     tmp = robot.step(TIME_STEP)
@@ -937,35 +952,34 @@ def lidar2image(map):
 
     for i in range(len(lidar_values)):
         if lidar_values[i] != float('inf') and lidar_values[i] != 0.0:
-            print(lidar_values[i])
+            theta,gps_xy = map_lidar(map, i ,lidar_values[i])
     pass
-
 def sandbox_dc():
 # %% Sandbox for Dan
 # Create a figure with subplots
-    plts = analyzeColor(world_map)
+    plts = analyzeColor(map)
 #%%
     tmp = robot.step(TIME_STEP)
-    analyzeColor(world_map,plts)
+    analyzeColor(map, plts)
 
 #%% assess object
-    lidar_objects = lidar2image(world_map)
+    lidar_objects = lidar2image(map)
 
     # If lidar is picking up objects in visible region of world map
     if lidar_objects is not None:
     # analy
-        analyzeScene(world_map)
+        analyzeScene(map)
 
 
 def sandbox_wp():
     # %% Sandbox for Witt
-    #init_youbot(world_map)
+    #init_youbot(map)
     tmp = robot.step(TIME_STEP)
 
 # SIMULATE using data structure
 
     posterior = random_posterior()
-    world_map.youbot.gps_xy = [youbot.sensors["gps"].getValues()[0],youbot.sensors["gps"].getValues()[2]]
+    map.youbot.gps_xy = [youbot.sensors["gps"].getValues()[0], youbot.sensors["gps"].getValues()[2]]
 
     # Movement
     youbot.wheels["front_right"].setVelocity(5.0)
@@ -985,10 +999,10 @@ def sandbox_wp():
 
             # Observe base object
             random_coords = [random.uniform(-8, -4), random.uniform(-5, 0)]
-            base_obj = baseObject(world_map, random_coords)
+            base_obj = baseObject(map, random_coords)
             berry_obj = berryObject(dist=base_obj.dist2youbot,
                                     berry_color=color,
-                                    map=world_map,
+                                    map=map,
                                     gps_xy=random_coords)
 
             #Print priority score before observation
@@ -999,14 +1013,14 @@ def sandbox_wp():
             # Observe Berry
             berry_obj.observe_effect(effect)
 
-        print("Count:\n", world_map.count)
-        print("Posterior\n", world_map.prior)
+        print("Count:\n", map.count)
+        print("Posterior\n", map.prior)
 
         plot_toggle = False
         if plot_toggle:
             # Plotting
-            count = world_map.count
-            prior = world_map.prior
+            count = map.count
+            prior = map.prior
 
             # Create subplots
             fig, axes = plt.subplots(1, 3, figsize=(25, 8))
