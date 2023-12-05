@@ -263,9 +263,16 @@ def getObjectRGB(object):
     return color_id
 
 
-def angle2object(youbot, object):
-    xdif = youbot.gps_xy[0] - object.gps_xy[0]
-    ydif = youbot.gps_xy[1] - object.gps_xy[1]
+def angle2object(*, youbot=None, obj=None, gps_xy=None):
+    if gps_xy is not None:
+        x, y = gps_xy
+    elif obj is not None:
+        x, y = obj.gps_xy
+    else:
+        return "Tried to path without valid target!"
+
+    xdif = youbot.gps_xy[0] - x
+    ydif = youbot.gps_xy[1] - y
     # Add pi / 2 to angle?
     angle = math.atan2(ydif, xdif) - youbot.bearing + (math.pi / 2)
     factor = abs(angle // (2 * math.pi))
@@ -277,17 +284,25 @@ def angle2object(youbot, object):
     return angle
 
 
-def path_to_object(youbot, object):
+def path_to_object(*, youbot=None, obj=None, gps_xy=None):
+    if youbot is None:
+        return "Tried to path without valid youbot!"
+    if gps_xy is not None:
+        angle = angle2object(youbot=youbot, gps_xy=gps_xy)
+        dist = distance(youbot.gps_xy, gps_xy)
+    elif obj is not None:
+        angle = angle2object(youbot=youbot, obj=obj)
+        dist = distance(youbot.gps_xy, obj.gps_xy)
+    else:
+        return "Tried to path without valid target!"
 
-    angle = object.angle2youbot
-
-    if object.dist2youbot < .2:
-        print("Berry reached!")
-        youbot.wheels["front_right"].setVelocity(0.0)
-        youbot.wheels["front_left"].setVelocity(0.0)
-        youbot.wheels["back_right"].setVelocity(0.0)
-        youbot.wheels["back_left"].setVelocity(0.0)
-    elif angle < to_rad(10):
+    if dist < 0.1:
+        print("Waypoint reached!")
+        youbot.wheels["front_right"].setVelocity(8.0)
+        youbot.wheels["front_left"].setVelocity(8.0)
+        youbot.wheels["back_right"].setVelocity(8.0)
+        youbot.wheels["back_left"].setVelocity(8.0)
+    elif angle < to_rad(5) or angle > to_rad(355):
         youbot.wheels["front_right"].setVelocity(8.0)
         youbot.wheels["front_left"].setVelocity(8.0)
         youbot.wheels["back_right"].setVelocity(8.0)
@@ -1110,7 +1125,8 @@ def calculate_path(map, grid, target):
     path, runs = finder.find_path(start, end, grid)
     return path
 
-def berry_seeking_target_coords(map, num_berries_considered, display_path=False):
+
+def berry_seeking_target_coords(map, num_berries_considered, steps_ahead, display_path=False):
     # Initialization functions
     min_max_gps = list_min_max_gps(world_map.world_object_list)
     grid = build_occupancy_grid(map)
@@ -1131,7 +1147,7 @@ def berry_seeking_target_coords(map, num_berries_considered, display_path=False)
     optimal_berry = world_map.world_berry_list[potential_paths.index(optimal_path)]
 
     # path_to_take = [(obj.x, obj.y) for obj in optimal_path]
-    gps_target = occupancy_to_gps(optimal_path[1], min_max_gps["min_x"], min_max_gps["min_y"], CELL_WIDTH)
+    gps_target = occupancy_to_gps(optimal_path[steps_ahead], min_max_gps["min_x"], min_max_gps["min_y"], CELL_WIDTH)
 
     # Optional print
     if display_path:
@@ -1139,11 +1155,11 @@ def berry_seeking_target_coords(map, num_berries_considered, display_path=False)
         print("Optimal Berry:", optimal_berry.color, "at", optimal_berry.gps_xy)
         print("Step to:", gps_target)
 
-    return gps_target
+    return gps_target, optimal_berry
 
 
 def sandbox_wp():
-    # %% Sandbox for Witt
+# %% Sandbox for Witt
     tmp = robot.step(TIME_STEP)
 
 # SIMULATE using data structure
@@ -1207,34 +1223,8 @@ def sandbox_wp():
 
     # identify berry to seek
     berry2seek = world_map.world_berry_list[0]
-
-    # %% Movement
-    toggle_move = False
-    if toggle_move:
-        steps = 100
-
-
-
-        for i in range(steps):
-            #Update Sensors
-            tmp = robot.step(TIME_STEP)
-            youbot.gps_xy = [youbot.sensors["gps"].getValues()[0], youbot.sensors["gps"].getValues()[2]]
-            youbot.bearing = get_comp_angle(world_map.youbot.sensors["compass"].getValues())
-            berry2seek.angle2youbot = angle2object(youbot, berry2seek)
-            berry2seek.dist2youbot = distance(youbot.gps_xy, berry2seek.gps_xy)
-
-            # Print testing
-            print("Angle to obj:", berry2seek.angle2youbot * (180 / math.pi))
-            print("Dist to berry:", berry2seek.dist2youbot)
-            print("Orientation:", youbot.bearing * (180 / math.pi))
-            print("Youbot:", youbot.gps_xy)
-            print("Object:", berry2seek.gps_xy)
-
-            path_to_object(youbot, berry2seek)
-
-    # %% Pathing Sim
-
-    # SIMULATE WORLD STATE
+# %% Pathing Sim
+    youbot.gps_xy = [youbot.sensors["gps"].getValues()[0], youbot.sensors["gps"].getValues()[2]]
     world_map.world_object_list = []
 
     # zombies
@@ -1265,15 +1255,33 @@ def sandbox_wp():
     # append youbot to world object list
     world_map.world_object_list.append(world_map.youbot)
 
-    # BUILD OCCUPANCY MATRIX & CHART PATH
-    grid = build_occupancy_grid(world_map)
-    path = calculate_path(world_map, grid, berry2seek)
-    #print_path(world_map, grid, path, berry2seek)
-    grid.cleanup()
+    # CHART FOR TOP N BERRIES
+    target_coords, optimal_berry = berry_seeking_target_coords(world_map, 2, 3, display_path=True)
 
-    # CHART FOR TOP FIVE BERRIES
-    # use display_path=True arg to display
-    berry_seeking_target_coords(world_map, 3, display_path=True)
+    # %% Movement based on gps_xy
+    move_from_pathing = True
+    if move_from_pathing:
+        steps = 50
+
+        for i in range(steps):
+            # Update Sensors
+            tmp = robot.step(TIME_STEP)
+            youbot.gps_xy = [youbot.sensors["gps"].getValues()[0], youbot.sensors["gps"].getValues()[2]]
+            youbot.bearing = get_comp_angle(world_map.youbot.sensors["compass"].getValues())
+            if i % 10 == 1:
+                target_coords, optimal_berry = berry_seeking_target_coords(world_map, 2, 3, display_path=False)
+
+            # Print testing
+            if i % 10 == 1:
+                # print("Angle to obj:", angle2object(youbot=youbot, gps_xy=target_coords) * (180 / math.pi))
+                # print("Dist to berry:", distance(youbot.gps_xy, target_coords))
+                # print("Orientation:", youbot.bearing * (180 / math.pi))
+                print("Youbot:", youbot.gps_xy)
+                print("Next path coords:", target_coords)
+                print("Berry coords", optimal_berry.gps_xy)
+
+            path_to_object(youbot=youbot, gps_xy=target_coords)
+
 
 
 def sandbox_ma():
