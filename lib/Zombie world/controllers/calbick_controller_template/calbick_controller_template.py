@@ -19,11 +19,15 @@ import math
 import matplotlib.pyplot as plt
 from math import sin, cos, atan
 import random
+from pathfinding.core.diagonal_movement import DiagonalMovement
+from pathfinding.core.grid import Grid
+from pathfinding.finder.a_star import AStarFinder
 
 # Define Global Variables
 _2pi = 2 * math.pi
 grid_width_default = 0.1
 plotMap = True
+CELL_WIDTH = 0.1
 
 #Old Class Definitions
 # %%  Define Classes
@@ -42,6 +46,19 @@ weights = np.array(([[0.5, 0.5, 0.5],
                      [0.5, 0.5, 0.5],
                      [0.5, 0.5, 0.5],
                      [0.5, 0.5, 0.5]]))
+zombie_colors = [
+    'green',
+    'blue',
+    'aqua',
+    'purple'
+]
+base_zombie_ranges = {
+    # vision radius for blue zombies?
+    "green": 2,
+    "blue": 2,
+    "aqua": 3,
+    "purple": 2,
+}
 
 class worldMapObject:
     def __init__(self, youbot=None, grid_cell_width=grid_width_default):
@@ -128,6 +145,8 @@ class berryObject(baseObject):
         self.effect = effect_type
         self.dist2youbot = dist
         self.priority = self.priority_score()
+        self.gps_xy = gps_xy
+        self.map_rc = self.hash_gps_to_map() if gps_xy is not None else None
         map.world_berry_list.append(self)
 
     def observe_effect(self, obs_effect):
@@ -188,6 +207,7 @@ class youbotObject(baseObject):
         self.wheels = wheels
         self.init_gps = init_gps_xy
         self.bearing = None
+        self.map_rc = self.hash_gps_to_map() if gps_xy is not None else None
         map.youbot = self
 
 class zombieObject(baseObject):
@@ -195,6 +215,7 @@ class zombieObject(baseObject):
         super().__init__(map, gps_xy, typeid)
         self.color = zombie_color
         self.chasing = False
+        self.map_rc = self.hash_gps_to_map() if gps_xy is not None else None
         if gps_xy is not None:
             self.bearing = distance(map.youbot.gps_xy, self.gps_xy)
             self.distance = map.youbot.gps_xy
@@ -204,12 +225,13 @@ class zombieObject(baseObject):
 
         map.world_zombie_list.append(self)
 
-
-class wallObject():
+#Addded inherit from base object  - that OK?
+class wallObject(baseObject):
     def __init__(self, map, wall_color='brown', gps_xy=None, typeid='wall', moveable=False):
         super().__init__(map, gps_xy, typeid)
         self.moveable = moveable
         self.color = "green" if self.moveable else "brown"
+        self.map_rc = self.hash_gps_to_map() if gps_xy is not None else None
         map.world_solid_list.append(self)
 
 
@@ -296,6 +318,11 @@ def convert_gps_to_map(gps_xy, map):
     # x, y are world coordinates
     # return x, y in map coordinates
     return [(a - b) // map.cell_width for a, b in zip(gps_xy, map.init_gps)]
+
+
+# Check this
+def convert_map_to_gps(idx, map):
+    return [(a * map.cell_width) + b for a, b in zip(idx, map.init_gps)]
 
 
 def get_comp_angle(compass_values):
@@ -1001,9 +1028,122 @@ def sandbox_dc():
         analyzeScene(world_map)
 
 
+def gps_to_occupancy(gps_xy, min_x, min_y, cell_width):
+    x, y = [int((a - b) // cell_width) for a, b in zip(gps_xy, (min_x, min_y))]
+    return x, y
+
+
+def occupancy_to_gps(idx, min_x, min_y, cell_width):
+    return [(a * cell_width) + b for a, b in zip(idx, (min_x, min_y))]
+
+def list_min_max_gps(lst):
+    min_max = {
+        'min_x': min(lst, key=lambda obj: obj.gps_xy[0]).gps_xy[0],
+        'max_x': max(lst, key=lambda obj: obj.gps_xy[0]).gps_xy[0],
+        'min_y': min(lst, key=lambda obj: obj.gps_xy[1]).gps_xy[1],
+        'max_y': max(lst, key=lambda obj: obj.gps_xy[1]).gps_xy[1]
+    }
+    return min_max
+
+
+def build_occupancy_grid(map):
+    # Bounds - replace these with parameters.
+    min_max_gps = list_min_max_gps(map.world_object_list)
+    min_x = min_max_gps["min_x"]
+    max_x = min_max_gps["max_x"]
+    min_y = min_max_gps["min_y"]
+    max_y = min_max_gps["max_y"]
+
+    # Basic map info
+    cell_width = map.cell_width
+    map_width = int(((max_x - min_x) // cell_width) + 1)
+    map_height = int(((max_y - min_y) // cell_width) + 1)
+
+    occupancy_matrix = [[1 for i in range(map_height)] for j in range(map_width)]
+
+    # POPULATE OCCUPANCY MATRIX
+    for obj in world_map.world_object_list:
+        x, y = gps_to_occupancy(obj.gps_xy, min_x, min_y, cell_width)
+
+        if obj.typeid == 'zombie':
+            zombie_range = int(base_zombie_ranges[obj.color] // cell_width)
+            # create dist to nearest berry for purple zombies
+            for i in range(x - zombie_range, x + zombie_range):
+                for j in range(y - zombie_range, y + zombie_range):
+                    if 0 <= i < (map_width - 1) and 0 <= j < (map_height - 1):
+                        # print("Tried to add at idx", i, j)
+                        occupancy_matrix[i][j] = 0
+        occupancy_matrix[x][y] = 0
+    grid = Grid(matrix=occupancy_matrix)
+    return grid
+
+
+def print_path(map, grid, path, target):
+    cell_width = map.cell_width
+    min_max_gps = list_min_max_gps(map.world_object_list)
+    min_x = min_max_gps["min_x"]
+    max_x = min_max_gps["max_x"]
+    min_y = min_max_gps["min_y"]
+    max_y = min_max_gps["max_y"]
+
+    start = gps_to_occupancy(map.youbot.gps_xy, min_x, min_y, cell_width)
+    end = gps_to_occupancy(target.gps_xy, min_x, min_y, cell_width)
+    print('path length:', len(path))
+    print(grid.grid_str(path=path, start=start, end=end))
+
+
+def calculate_path(map, grid, target):
+    cell_width = map.cell_width
+    min_max_gps = list_min_max_gps(map.world_object_list)
+    min_x = min_max_gps["min_x"]
+    max_x = min_max_gps["max_x"]
+    min_y = min_max_gps["min_y"]
+    max_y = min_max_gps["max_y"]
+
+    youbot_x, youbot_y = gps_to_occupancy(map.youbot.gps_xy, min_x, min_y, cell_width)
+    start = grid.node(youbot_x, youbot_y)
+    # Get position of target berry
+    berry_x, berry_y = gps_to_occupancy(target.gps_xy, min_x, min_y, cell_width)
+    end = grid.node(berry_x, berry_y)
+
+    finder = AStarFinder(diagonal_movement=DiagonalMovement.always)
+    path, runs = finder.find_path(start, end, grid)
+    return path
+
+def berry_seeking_target_coords(map, num_berries_considered, display_path=False):
+    # Initialization functions
+    min_max_gps = list_min_max_gps(world_map.world_object_list)
+    grid = build_occupancy_grid(map)
+    potential_paths = []
+
+    # Calculate paths for n most promising berries
+    for i in range(num_berries_considered):
+        if i < len(world_map.world_berry_list):
+            potential_paths.append(calculate_path(world_map, grid, world_map.world_berry_list[i]))
+            grid.cleanup()
+
+    # Find minimum length valid path
+    if all(el == [] for el in potential_paths):
+        print("No berry target found.")
+        return None
+
+    optimal_path = min(filter(lambda x: len(x) > 0, potential_paths), key=len, default=None)
+    optimal_berry = world_map.world_berry_list[potential_paths.index(optimal_path)]
+
+    # path_to_take = [(obj.x, obj.y) for obj in optimal_path]
+    gps_target = occupancy_to_gps(optimal_path[1], min_max_gps["min_x"], min_max_gps["min_y"], CELL_WIDTH)
+
+    # Optional print
+    if display_path:
+        print_path(world_map, grid, optimal_path, optimal_berry)
+        print("Optimal Berry:", optimal_berry.color, "at", optimal_berry.gps_xy)
+        print("Step to:", gps_target)
+
+    return gps_target
+
+
 def sandbox_wp():
     # %% Sandbox for Witt
-    #init_youbot(world_map)
     tmp = robot.step(TIME_STEP)
 
 # SIMULATE using data structure
@@ -1065,14 +1205,15 @@ def sandbox_wp():
             axes[2].imshow(prior)
             axes[2].set_title("Prior")
 
-    # Movement
-    toggle_move = True
-    # %% Move Sim
-    if toggle_move:
-        steps = 40
+    # identify berry to seek
+    berry2seek = world_map.world_berry_list[0]
 
-        #identify berry to seek
-        berry2seek = world_map.world_berry_list[0]
+    # %% Movement
+    toggle_move = False
+    if toggle_move:
+        steps = 100
+
+
 
         for i in range(steps):
             #Update Sensors
@@ -1090,13 +1231,49 @@ def sandbox_wp():
             print("Object:", berry2seek.gps_xy)
 
             path_to_object(youbot, berry2seek)
-#Usage for berry probability:
-    # On LiDAR scan: create baseObject() instance with positional info
-    # On color confirmation: replace with BerryObject() instance.
-        # Appends berry to map.berryList
-        # Priority score calculated. Retrievable at berry_obj.priority
-    # On observation: Call mathod berry_obj.observe_effect(effect)
-        #Updates probability map (map.prior)
+
+    # %% Pathing Sim
+
+    # SIMULATE WORLD STATE
+    world_map.world_object_list = []
+
+    # zombies
+    num_zombies = 5
+    for i in range(num_zombies):
+        zombie = zombieObject(world_map,
+                              random.choice(zombie_colors),
+                              (random.uniform(-10, 10), random.uniform(-10, 10)),
+                              )
+        world_map.world_zombie_list.append(zombie)
+        # Add this behavior to zombies, walls, and berries!
+        world_map.world_object_list.append(zombie)
+
+    # walls
+    num_walls = 30
+    for i in range(num_walls):
+        wall = baseObject(world_map,
+                          (random.uniform(-10, 10), random.uniform(-10, 10)),
+                          )
+        world_map.world_solid_list.append(wall)
+        world_map.world_object_list.append(wall)
+
+    # berries
+    for berry in world_map.world_berry_list:
+        berry.gps_xy = (random.uniform(-10, 10), random.uniform(-10, 10))
+        world_map.world_object_list.append(berry)
+
+    # append youbot to world object list
+    world_map.world_object_list.append(world_map.youbot)
+
+    # BUILD OCCUPANCY MATRIX & CHART PATH
+    grid = build_occupancy_grid(world_map)
+    path = calculate_path(world_map, grid, berry2seek)
+    #print_path(world_map, grid, path, berry2seek)
+    grid.cleanup()
+
+    # CHART FOR TOP FIVE BERRIES
+    # use display_path=True arg to display
+    berry_seeking_target_coords(world_map, 3, display_path=True)
 
 
 def sandbox_ma():
