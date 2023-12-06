@@ -1,0 +1,19 @@
+Webots Project File version R2021b
+perspectives: 000000ff00000000fd00000002000000010000011c00000475fc0200000001fb0000001400540065007800740045006400690074006f00720000000000000004750000004500ffffff00000003000002ee000000d9fc0100000001fb0000001a0043006f006e0073006f006c00650041006c006c0041006c006c0100000000000002ee0000008700ffffff000002ee0000030d00000001000000020000000100000008fc00000000
+simulationViewPerspectives: 000000ff000000010000000200000119000004f30100000002010000000100
+sceneTreePerspectives: 000000ff0000000100000002000002c2000000fa0100000002010000000200
+maximizedDockId: -1
+centralWidgetVisible: 1
+orthographicViewHeight: 1
+textFiles: -1
+globalOptionalRendering: LidarPointClouds::LidarRaysPaths
+consoles: Console:All:All
+renderingDevicePerspectives: youBot:BackHighRes;1;1;0;0
+renderingDevicePerspectives: youBot:BackLowRes;1;1;0;0
+renderingDevicePerspectives: youBot:ForwardHighRes;1;1;0;0
+renderingDevicePerspectives: youBot:ForwardHighResSmall;1;1;0;0
+renderingDevicePerspectives: youBot:ForwardHighResSmallFov;1;1;0;0
+renderingDevicePerspectives: youBot:ForwardLowResBigFov;1;1;0;0
+renderingDevicePerspectives: youBot:LeftLowRes;1;1;0;0
+renderingDevicePerspectives: youBot:RightLowRes;1;1;0;0
+renderingDevicePerspectives: youBot:range-finder;1;1;0;0

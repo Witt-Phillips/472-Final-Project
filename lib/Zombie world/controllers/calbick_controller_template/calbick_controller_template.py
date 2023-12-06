@@ -72,9 +72,12 @@ class baseObject():
         self.map       = map
         self.typeid    = typeid
         self.object_id = id(self)
-        self.cell_idx = None
+        self.cell_idx  = None
         self.cell_hash = None
-        self.gps_xy = gps_xy
+        self.velocity  = None
+        self.gps_0     = None
+
+        # self.gps_xy = gps_xy
         # self.map_rc = self.hash_gps_to_map()
 
         self.origin_xy = origin_xy
@@ -92,12 +95,40 @@ class baseObject():
         return self.map.init_gps
 
     @property
+    def gps_1(self,gps_xy):
+        # Calling this with gps_xy will shift gps_0->gps_1 & gps_1->gps_xy
+        # and then calculate orientation between gps_1 and gps_0
+        if gps_0 is None:
+            return
+        self.gps_0 = gps_1
+        self.gps_1 = gps_xy
+        gps_1
+    @property
     def map_rc(self):
         if self.gps_xy[0] is not None:
             map_rc = convert_gps_to_map(self.gps_xy, self.map)
             return map_rc
         else:
             return None
+
+    @property
+    def orientation(self):
+        x0,y0 = [i for i in self.gps_0]
+        x1,y1 = [i for i in self.gps_xy]
+
+        # Calculate the vector components
+        dx = x1 - x0
+        dy = y1 - y0
+
+        # Calculate the angle from the x-axis
+        angle_from_x_axis = math.atan2(dy, dx)
+
+        # Calculate the angle from the y-axis
+        angle_from_y_axis = math.pi / 2 - angle_from_x_axis
+
+        # Convert the angle to degrees
+        angle_from_y_axis_degrees = math.degrees(angle_from_y_axis)
+        return angle_from_y_axis
 
     def update_cell_table(self, cell_rc):
         # This function is called only when new_map_rc and old_map_rc don't match
@@ -128,7 +159,8 @@ class berryObject(baseObject):
         self.color = berry_color
         self.effect = effect_type
         self.dist2youbot = dist
-        self.priority = self.priority_score()
+        self.priority  = self.priority_score()
+        self.reachable = None
         map.world_berry_list.append(self)
 
     def observe_effect(self, obs_effect):
@@ -187,12 +219,14 @@ class youbotObject(baseObject):
         self.sensors = sensors
         self.wheels = wheels
 
+
+
         # self.orientation = get_comp_angle(self)
         map.youbot = self
 
-    @property
-    def orientation(self):
-        return get_comp_angle(self.sensors["compass"].getValues())
+    # @property
+    # def orientation(self):
+    #     return get_comp_angle(self.sensors["compass"].getValues())
 
     @property
     def gps_xy(self):
@@ -954,6 +988,8 @@ def lidar2image(map):
         if lidar_values[i] != float('inf') and lidar_values[i] != 0.0:
             theta,gps_xy = map_lidar(map, i ,lidar_values[i])
     pass
+
+
 def sandbox_dc():
 # %% Sandbox for Dan
 # Create a figure with subplots
