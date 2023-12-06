@@ -1,16 +1,21 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+
 #%%
 # Enable interactive mode
 plt.ion()
 
+runstep()
+x = 0
+y = 0
+
+lidar_values = youbot.sensors["lidar"].getRangeImage()
+
 # Create the initial plot
-fig, ax = plt.subplots()
-ax.set_xlim(-10, 10)  # Adjust these limits based on your expected data range
-ax.set_ylim(-10, 10)
-ax.set_xlabel('X Coordinate')
-ax.set_ylabel('Y Coordinate')
+fig,ax = plt.subplots(figsize=(20,20))
+
+
 
 # Constants
 total_degrees = 360
@@ -31,21 +36,22 @@ allx = []
 ally = []
 
 for i in range(len(lidar_values)):
-    if lidar_values[i] != float('inf') and lidar_values[i] != 0.0:
+    if lidar_values[i] != float('inf') :
         theta, gps_xy = map_lidar(map, i, lidar_values[i])
+
+        # ax.plot([x, gps_xy[0]], [y, gps_xy[1]], color='green')
         allx.extend([x, gps_xy[0], np.nan])
         ally.extend([y, gps_xy[1], np.nan])
 
-
-
-# Clear previous lines
-ax.clear()
-ax.set_xlim(-10, 10)
-ax.set_ylim(-10, 10)
+mxx = max(allx)*1.2
+mxy = max(ally)*1.2
+ax.set_xlim(-mxx, mxx)  # Adjust these limits based on your expected data range
+ax.set_ylim(-mxy, mxy )
 ax.set_xlabel('X Coordinate')
 ax.set_ylabel('Y Coordinate')
 
-imrange = range(start, end)
+ax.plot(allx, ally, color='green')
+
 
 start  = 0
 end    = 43
@@ -60,17 +66,12 @@ for i in imrange:
         xsv.extend([x, gps_xy[0], np.nan])
         ysv.extend([y, gps_xy[1], np.nan])
 
-# Clear previous lines
-ax.clear()
-ax.set_xlim(-10, 10)
-ax.set_ylim(-10, 10)
-ax.set_xlabel('X Coordinate')
-ax.set_ylabel('Y Coordinate')
+ax.plot(xsv, ysv, color='red')
 
 imrange = range(start, end)
 
-start  = 512-43
-end    = 513
+start  = 512-42
+end    = 512
 imrange = range(start, end)
 
 # Plotting logic
@@ -82,9 +83,8 @@ for i in imrange:
         xsv.extend([x, gps_xy[0], np.nan])
         ysv.extend([y, gps_xy[1], np.nan])
 
-ax.plot(allx, ally, color='green')
 ax.plot(xsv, ysv, color='blue')
-ax.set_title(f'Index: {i} (Degree: {i*deg_per_index})')
+
 
 # Update the plot
 fig.canvas.draw()

@@ -258,27 +258,38 @@ class youbotObject(baseObject):
         self.wheels = wheels
 
     @property
+    def wheel_velocity(self):
+        return [self.wheels[key].getVelocity()  for key in self.wheels.keys()]
+
+
+    @wheel_velocity.setter
+    def wheel_velocity(self,vel):
+        for key in youbot.wheels.keys():
+            youbot.wheels[key].setVelocity(vel)
+
+    @property
     def getgps(self):
         gps = self.sensors["gps"].getValues()
         return [gps[0], gps[2]]
 
-    # @property
-    # def orientation_north(self):
-    #     return get_comp_angle(self.sensors["compass"].getValues())
+    @property
+    def update_orientation(self):
+
+        return get_comp_angle(self.sensors["compass"].getValues())
 
 
 class zombieObject(baseObject):
-    def __init__(self, map, zombie_color=None, gps_xy=None, typeid='zombie'):
-        super().__init__(map, gps_xy, typeid)
+    def __init__(self, map, zombie_color=None, typeid='zombie'):
+        super().__init__(map,typeid)
         self.color = zombie_color
         self.chasing = False
-        self.map_rc = self.hash_gps_to_map() if gps_xy is not None else None
-        if gps_xy is not None:
-            self.bearing = distance(map.youbot.gps_xy, self.gps_xy)
-            self.distance = map.youbot.gps_xy
-        else:
-            self.bearing = None
-            self.distance = None
+        # self.map_rc = self.hash_gps_to_map() if gps_xy is not None else None
+        # if gps_xy is not None:
+        #     self.bearing = distance(map.youbot.gps_xy, self.gps_xy)
+        #     self.distance = map.youbot.gps_xy
+        # else:
+        #     self.bearing = None
+        #     self.distance = None
 
         map.world_zombie_list.append(self)
 
@@ -424,21 +435,17 @@ def map_lidar(map, beam_number, magnitude):
     # for i in range(len(lidar_values)):
     #         mainMap.map_lidar(i, lidar_values[i], orientation)
 
-    # Normalize angle
-    orient = get_comp_angle(map.youbot.sensors["compass"].getValues())
-    theta = ((_2pi / 512) * beam_number) + orient
-    theta = theta - (_2pi * (theta > _2pi))  # subtract by 2𝜋 if  𝜃 > 2𝜋
+    # Map egocenteric orientation
+    theta = ((_2pi / 512) * (beam_number+1)) - (math.pi/2) # (3*math.pi/2)
 
-    # Find coords & map
+    # if theta > _2pi:
+    #     theta = theta - (_2pi)  # subtract by 2𝜋 if  𝜃 > 2𝜋
+
+    # Find coords & map to robot
     gps_xy = multiply([cos(theta), sin(theta)], magnitude)
 
-    # Figure out if there is an object marked close to that position
-    objects   = map.world_object_list
-    positions = [obj.gps_xy for obj in objects]
 
-    assign_object(map, gps_xy)
-
-    return theta,gps_xy
+    return theta, gps_xy
 
 
 def assign_object(map, gps_xy):
@@ -881,8 +888,20 @@ def lidar2image(map):
             print(lidar_values[i])
     pass
 
-def runstep():
+
+
+def runstep(value=None , func=None):
     tmp = robot.step(TIME_STEP)
+    if isinstance(value,int):
+        for i in range(value - 1):
+            if isinstance(func, str):
+                print(eval(func))
+                tmp = robot.step(TIME_STEP)
+            else:
+                tmp = robot.step(TIME_STEP)
+    elif isinstance(value,str):
+                print(eval(value))
+
 
 def lidarDetect(map):
     #%%
@@ -904,17 +923,22 @@ def lidarDetect(map):
     ax.set_ylabel('Y Coordinate')
     ax.set_title('Lidar Data Visualization')
 
-    deg60 = round(60 // (360 / 512))
-    start = round((180-30) // (360 / 512))
-    end   = deg60+start
-    imrange = range(start, end)
-
+    deg30 = round(30 // (360 / 512))
+    imrange = [x for x in range(deg30)]
+    imrange.extend([x for x in range(512-deg60,512)])
     xsv = []
     ysv = []
+
+    # Build Scene Object list
+    objs_in_view = [];
     for i in imrange:
 
         if lidar_values[i] != float('inf') and lidar_values[i] != 0.0:
 
+            # Check # beams that are continuously in same range
+            # If we
+
+            #
             theta, gps_xy = map_lidar(map, i, lidar_values[i])
             xsv.append(x)
             xsv.append(gps_xy[0])
@@ -923,6 +947,14 @@ def lidarDetect(map):
             ysv.append(gps_xy[1])
             ysv.append(np.nan)
 
+    # Go through Objects in Scene and compare with hidden/visible objects
+    objs_vis = map.v
+    while len(objs_in_view) > 0:
+        obj = objs_in_view.pop()
+
+        for
+
+        sc
     ax.plot(xsv, ysv, color='blue')  # Add color if needed
 
     plt.show()

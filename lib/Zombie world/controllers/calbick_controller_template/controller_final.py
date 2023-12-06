@@ -492,10 +492,10 @@ def main(simparams=None):
     br.setPosition(float('inf'))
     bl.setPosition(float('inf'))
 
-    fr.setVelocity(0.0)
-    fl.setVelocity(0.0)
-    br.setVelocity(0.0)
-    bl.setVelocity(0.0)
+    fr.setVelocity(1.0)
+    fl.setVelocity(1.0)
+    br.setVelocity(1.0)
+    bl.setVelocity(1.0)
 
     robot_node = robot.getFromDef("Youbot")
     trans_field = robot_node.getField("translation")
