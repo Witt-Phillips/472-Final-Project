@@ -20,19 +20,18 @@ from youbot_zombie import *
 # import matplotlib.pyplot as plt
 # from matplotlib.animation import FuncAnimation
 import numpy as np
-# import cv2
+import cv2
 import math
+
 _2PI = 2 * math.pi
 # --------------------------------------------------------------------------------
 
 print(os.environ.values())
-print("Imports block was executed")
-# %%
+
 
 # Map data structure
 # Uses a hash map with GPS-derived coords as keys.
 # Values are objects in MapCell, which hold relevant cell info.
-print("Map class defined")
 class Map:
     def __init__(self, cellWidth, currCell):
         self.cellWidth = cellWidth  # in meters
@@ -75,9 +74,8 @@ class Map:
             cell.solid = True
             # print("Existing cell at", coords, "marked solid")
 
-# %%
+
 # Cell class holds coordinates & type for each mapped cell.
-print("defining MapCell")
 class MapCell:
     def __init__(self, xPos, yPos, berryType, zombieType, visited, solid):
         self.xPos = xPos
@@ -88,7 +86,7 @@ class MapCell:
         self.visited = visited
         self.solid = solid
 
-# %%
+
 # Compass to bearing translation
 # Note - this code is translated from the C version available in the documentation.
 def get_comp_angle(compassVals):
@@ -97,19 +95,55 @@ def get_comp_angle(compassVals):
         angle = angle + _2PI
     return angle
 
-# %%
+
 def str_coords(x, y):
     return "(" + str(x) + ", " + str(y) + ")"
 
-# %%
-
-
-# %%
+def calculate_orientation_from_gps(old_gps, new_gps):
+    delta_x = new_gps[0] - old_gps[0]
+    delta_y = new_gps[2] - old_gps[2]
+    orientation = math.atan2(delta_y, delta_x)
+    if orientation < 0:
+        orientation += 2 * math.pi
+    return orientation
 # ------------------CHANGE CODE ABOVE HERE ONLY--------------------------
+
+def get_gps_orientation_change(old_gps, new_gps):
+    # Calculate the difference in GPS coordinates
+    delta_x = new_gps[0] - old_gps[0]
+    delta_y = new_gps[1] - old_gps[1]
+
+    # Calculate orientation using atan2
+    orientation = math.atan2(delta_y, delta_x)
+    if orientation < 0:
+        orientation += 2 * math.pi  # Normalize to [0, 2π]
+    return orientation
+
+
+def orientation_using_velocities(fr_vel, fl_vel, br_vel, bl_vel, wheel_base_width, dt):
+
+    # Calculate the average velocity on each side
+    right_velocity = (fr_vel + br_vel) / 2
+    left_velocity = (fl_vel + bl_vel) / 2
+
+    # Calculate the angular velocity (difference in side velocities divided by the distance between wheels)
+    angular_velocity = (right_velocity - left_velocity) / wheel_base_width
+
+    # Estimate the change in orientation
+    orientation_change = angular_velocity * dt
+
+    return orientation_change
+
+def check_rotation_condition(velocity_fr, velocity_fl, velocity_br, velocity_bl, margin=0.001):
+    if abs(velocity_fr) < margin:
+        return False
+    def is_close(a, b, margin):
+        return abs(a - b) < margin
+
+    return is_close(velocity_fr, velocity_br, margin) and is_close(velocity_fl, velocity_bl, margin) and is_close(velocity_fr, -1 * velocity_bl, margin)
 
 
 def main():
-    print("Main is being run")
     robot = Supervisor()
 
     # get the time step of the current world.
@@ -208,106 +242,103 @@ def main():
     # Temp variable to track coord change across time steps
     temp_coords = ""
 
-    ## TO LOOK AT
-    def polar_to_cartesian(distance, angle):
-        x = distance * math.sin(angle)
-        y = distance * math.cos(angle)
-        return x, y
+    reorient_interval = 5  # Interval to read GPS and calculate orientation (in timesteps)
+    last_oriented = 0
+    prevGpsX, prevGpsY = None, None
+    rotational_orientation = None
+    prev_actual = get_comp_angle(compass.getValues())
+    print("before the loop the actual orientation is", prev_actual)
+    current_orientation = None
 
-    def get_relative_polar_coordinates(robot_position, landmark_global_position):
-        # Calculate relative position
-        relative_x = landmark_global_position[0] - robot_position[0]
-        relative_y = landmark_global_position[1] - robot_position[1]
+    def reorient(speed, n):
+        """ Moves the robot in a straight linear path for n timesteps and returns its new orientation."""
+        old_gps = gps.getValues()
+        fr.setVelocity(speed)
+        fl.setVelocity(speed)
+        br.setVelocity(speed)
+        bl.setVelocity(speed)
+        # print("for a moment, the velocities are", fr.getVelocity())
 
-        # Convert to polar coordinates
-        distance = math.sqrt(relative_x ** 2 + relative_y ** 2)
-        angle = math.atan2(relative_y, relative_x)
-        return distance, angle
-
-    def getLandmarkBeamNumberandDistance(lidar_distances, landmark_distance_range):
-        """
-        Identify the beam number that points to the landmark.
-
-        Args:
-        - lidar_distances: A list of distances from the Lidar sensor.
-        - landmark_distance_range: A tuple (min_distance, max_distance) that defines the expected distance range of the landmark.
-
-        Returns:
-        - The beam number that points to the landmark or None if the landmark is not found.
-        """
-
-        min_distance, max_distance = landmark_distance_range
-        for beam_number, distance in enumerate(lidar_distances):
-            if min_distance <= distance <= max_distance:
-                return (beam_number, distance)  # Returns the first beam that matches the landmark distance range
-
-        return None  # If no beam matches the landmark distance range
-
-    def find_beam_by_distance(lidar_distances, target_distance, distance_tolerance=0.1):
-        """
-        Find the Lidar beam that points to the known global coordinates of the landmark using only distance.
-
-        Args:
-        - lidar_distances: List of distances from the Lidar sensor.
-        - target_distance: The distance to the landmark from the robot.
-        - distance_tolerance: How close the beam's distance needs to be to the target distance.
-
-        Returns:
-        - The beam number that most closely matches the target distance or None if not found.
-        """
-        closest_beam_number = None
-        smallest_distance_difference = float('inf')
-
-        for beam_number, beam_distance in enumerate(lidar_distances):
-            distance_difference = abs(beam_distance - target_distance)
-
-            if distance_difference < smallest_distance_difference and distance_difference <= distance_tolerance:
-                smallest_distance_difference = distance_difference
-                closest_beam_number = beam_number
-
-        return closest_beam_number
-
-    tmp = robot.step(TIME_STEP)
-    lidar_values = lidar.getRangeImage()
-    threshold = (0,10)
-    landmark_detected_beam, lidar_value = getLandmarkBeamNumberandDistance(lidar_values, threshold)
-    landmark_angle = landmark_detected_beam * (_2PI / 512)
-    initial_beam_angle = landmark_angle
-
-    # Fixed coordinates for the landmark:
-    landmarkX, landmarkY = polar_to_cartesian(lidar_value, landmark_angle)
-    # landmarkX = mainMap.gps_to_map(mainMap.initialReading[0], landmarkX)
-    # landmarkY = mainMap.gps_to_map(mainMap.initialReading[0], landmarkY)
-
-    orientation_estimated = 0
-
+        robot.step(TIME_STEP * n)
+        new_gps = gps.getValues()
+        new_orientation = calculate_orientation_from_gps(old_gps, new_gps)
+        # compass_values = compass.getValues()
+        # orientation = get_comp_angle(compass_values)
+        # print("Actual Orientation is", orientation)
+        # print("the gps cooridnates are", old_gps, new_gps)
+        print("The new orientation is", new_orientation, TIME_STEP)
+        return new_orientation
     # Sensor Control Loop
     while robot.step(TIME_STEP) != -1:
-        print("main loop is being entered")
         # Get sensor data
         gps_values = gps.getValues()
         lidar_values = lidar.getRangeImage()
         compass_values = compass.getValues()
-        print("compass values of robot", compass_values)
+
         orientation = get_comp_angle(compass_values)
-        print("corresponding orientation is", orientation)
+        if prevGpsX is None:
+            print("first step", current_orientation, orientation)
+
         gpsX = round(gps_values[0], 3)
         gpsY = round(gps_values[2], 3)
 
+        velocity_fr = fr.getVelocity()
+        velocity_fl = fl.getVelocity()
+        velocity_br = br.getVelocity()
+        velocity_bl = bl.getVelocity()
+
+        ## rotational error is less when we try to rotate with this set of velocities 2, -2, 2, -2
+        rotating = check_rotation_condition(velocity_fr, velocity_fl, velocity_br, velocity_bl, margin=0.001)
+
+        if prevGpsX is not None and not rotating:
+            # print("GPS co-ordinates in the previous time step were", (prevGpsX, prevGpsY))
+            # print("GPS co-ordinates now are", (gpsX, gpsY))
+            current_orientation = get_gps_orientation_change((prevGpsX, prevGpsY), (gpsX, gpsY))
+            print("The calculated orientation using just gps is", current_orientation)
+            print("Actual orientation is", orientation)
+            print("error:", current_orientation - orientation)
+
+        prevGpsX, prevGpsY = gpsX, gpsY
+        
+        if rotating:
+            if rotational_orientation is None:
+                rotational_orientation = current_orientation
+            if current_orientation is None or current_orientation == 0:
+                print("reorienting")
+                rotational_orientation = reorient(5, 1)
+                # important to reset velocities after reorienting
+                fr.setVelocity(velocity_fr)
+                fl.setVelocity(velocity_fl)
+                br.setVelocity(velocity_br)
+                bl.setVelocity(velocity_bl)
+
+                print("rotational_orientation initialised", rotational_orientation)
+            rotational_orientation -= orientation_using_velocities(velocity_fr, velocity_fl, velocity_br, velocity_bl,4.00295, TIME_STEP * 0.001)
+            rotational_orientation = rotational_orientation % _2PI
+            current_orientation = rotational_orientation
+
+            print("Rotational orientation (calculated)", rotational_orientation)
+            print("Orientation (using compass sensor) is", orientation)
+            print("error:", rotational_orientation - orientation)
+        else:
+            rotational_orientation = None
+
+        # print("current time", robot.getTime())
+        # print("last read", last_oriented)
+        # after every reorient_interval timesteps
+        if robot.getTime() - last_oriented > reorient_interval:
+            current_orientation = reorient(5, 1)
+            last_oriented = robot.getTime()
+            # reset the velocities
+            fr.setVelocity(velocity_fr)
+            fl.setVelocity(velocity_fl)
+            br.setVelocity(velocity_br)
+            bl.setVelocity(velocity_bl)
+            print("the robot was reoriented and the new orientation is ",current_orientation)
         # Cast gps readings to map coords
         mappedX = mainMap.gps_to_map(mainMap.initialReading[0], gpsX)
         mappedY = mainMap.gps_to_map(mainMap.initialReading[1], gpsY)
         coords = str_coords(mappedX, mappedY)
-        print("mapped coordinates are", mappedX, mappedY)
-
-        target_distance, _ = get_relative_polar_coordinates((mappedX, mappedY), (landmarkX, landmarkY))
-        new_landmark_detected_beam = find_beam_by_distance(lidar_values, target_distance)
-        if new_landmark_detected_beam is not None:
-            new_beam_angle = new_landmark_detected_beam * (_2PI / 512)
-            orientation_step = (new_beam_angle - 2 * initial_beam_angle) % _2PI
-            orientation_estimated += orientation_step
-
-        print("orientation estimated", orientation_estimated)
 
         # Create new dictionary entry if cell unencountered
         if mainMap.cellTable.get(coords) is None:
@@ -342,19 +373,19 @@ def main():
         rgb_img = np_img[:, :, :3]
         # hsv_img = cv2.cvtColor(rgb_img, cv2.COLOR_RGB2HSV)
 
-        # cv2.imshow("Back Camera", rgb_img)
-        # cv2.waitKey(100)
+        cv2.imshow("Back Camera", rgb_img)
+        cv2.waitKey(100)
 
-        fr.setVelocity(6.0)
-        fl.setVelocity(8.0)
-        br.setVelocity(6.0)
-        bl.setVelocity(8.0)
+        fr.setVelocity(7)
+        fl.setVelocity(2)
+        br.setVelocity(7)
+        bl.setVelocity(2)
+
     i = 0
 
     # ------------------CHANGE CODE ABOVE HERE ONLY--------------------------
 
     while (robot_not_dead == 1):
-        print("entering the loop with not dead")
 
         if (robot_info[0] < 0):
             robot_not_dead = 0
