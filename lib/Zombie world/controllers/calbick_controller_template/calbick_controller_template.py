@@ -302,21 +302,36 @@ def path_to_object(*, youbot=None, obj=None, gps_xy=None):
         youbot.wheels["front_left"].setVelocity(8.0)
         youbot.wheels["back_right"].setVelocity(8.0)
         youbot.wheels["back_left"].setVelocity(8.0)
+    # straight
     elif angle < to_rad(5) or angle > to_rad(355):
         youbot.wheels["front_right"].setVelocity(8.0)
         youbot.wheels["front_left"].setVelocity(8.0)
         youbot.wheels["back_right"].setVelocity(8.0)
         youbot.wheels["back_left"].setVelocity(8.0)
-    elif angle > math.pi:
-        youbot.wheels["front_right"].setVelocity(8.0)
-        youbot.wheels["front_left"].setVelocity(-8.0)
-        youbot.wheels["back_right"].setVelocity(8.0)
-        youbot.wheels["back_left"].setVelocity(-8.0)
-    else:
-        youbot.wheels["front_right"].setVelocity(-8.0)
+    # soft left
+    elif angle < to_rad(45):
+        youbot.wheels["front_right"].setVelocity(4.0)
         youbot.wheels["front_left"].setVelocity(8.0)
-        youbot.wheels["back_right"].setVelocity(-8.0)
+        youbot.wheels["back_right"].setVelocity(4.0)
         youbot.wheels["back_left"].setVelocity(8.0)
+    # soft right
+    elif angle > to_rad(315):
+        youbot.wheels["front_right"].setVelocity(8.0)
+        youbot.wheels["front_left"].setVelocity(4.0)
+        youbot.wheels["back_right"].setVelocity(8.0)
+        youbot.wheels["back_left"].setVelocity(4.0)
+    # hard right
+    elif angle > math.pi:
+        youbot.wheels["front_right"].setVelocity(5.0)
+        youbot.wheels["front_left"].setVelocity(-5.0)
+        youbot.wheels["back_right"].setVelocity(5.0)
+        youbot.wheels["back_left"].setVelocity(-5.0)
+    # hard left
+    else:
+        youbot.wheels["front_right"].setVelocity(-5.0)
+        youbot.wheels["front_left"].setVelocity(5.0)
+        youbot.wheels["back_right"].setVelocity(-5.0)
+        youbot.wheels["back_left"].setVelocity(5.0)
 
 ########## Utility functions
 
@@ -1145,6 +1160,8 @@ def berry_seeking_target_coords(map, num_berries_considered, steps_ahead, displa
 
     optimal_path = min(filter(lambda x: len(x) > 0, potential_paths), key=len, default=None)
     optimal_berry = world_map.world_berry_list[potential_paths.index(optimal_path)]
+    if len(optimal_path) <= steps_ahead:
+        steps_ahead = len(optimal_path) - 1
 
     # path_to_take = [(obj.x, obj.y) for obj in optimal_path]
     gps_target = occupancy_to_gps(optimal_path[steps_ahead], min_max_gps["min_x"], min_max_gps["min_y"], CELL_WIDTH)
@@ -1153,7 +1170,9 @@ def berry_seeking_target_coords(map, num_berries_considered, steps_ahead, displa
     if display_path:
         print_path(world_map, grid, optimal_path, optimal_berry)
         print("Optimal Berry:", optimal_berry.color, "at", optimal_berry.gps_xy)
+        print("Youbot:", youbot.gps_xy)
         print("Step to:", gps_target)
+
 
     return gps_target, optimal_berry
 
@@ -1261,7 +1280,7 @@ def sandbox_wp():
     # %% Movement based on gps_xy
     move_from_pathing = True
     if move_from_pathing:
-        steps = 50
+        steps = 75
 
         for i in range(steps):
             # Update Sensors
@@ -1272,15 +1291,19 @@ def sandbox_wp():
                 target_coords, optimal_berry = berry_seeking_target_coords(world_map, 2, 3, display_path=False)
 
             # Print testing
-            if i % 10 == 1:
-                # print("Angle to obj:", angle2object(youbot=youbot, gps_xy=target_coords) * (180 / math.pi))
-                # print("Dist to berry:", distance(youbot.gps_xy, target_coords))
-                # print("Orientation:", youbot.bearing * (180 / math.pi))
-                print("Youbot:", youbot.gps_xy)
-                print("Next path coords:", target_coords)
-                print("Berry coords", optimal_berry.gps_xy)
+            print_on = False
+            if print_on:
+                if i % 10 == 1:
+                    # print("Angle to obj:", angle2object(youbot=youbot, gps_xy=target_coords) * (180 / math.pi))
+                    # print("Dist to berry:", distance(youbot.gps_xy, target_coords))
+                    # print("Orientation:", youbot.bearing * (180 / math.pi))
+                    print("Youbot:", youbot.gps_xy)
+                    print("Next path coords:", target_coords)
+                    print("Berry coords", optimal_berry.gps_xy)
 
-            path_to_object(youbot=youbot, gps_xy=target_coords)
+
+            if i % 3 == 1:
+                path_to_object(youbot=youbot, gps_xy=target_coords)
 
 
 
