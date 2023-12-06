@@ -52,6 +52,8 @@ class worldMapObject:
         self.world_zombie_list = []
         self.world_berry_list = []
         self.world_solid_list = []
+        self.visible_objects  = []
+        self.hidden_objects   = []
         self.world_object_list = self.world_zombie_list + self.world_berry_list + self.world_solid_list
         self.cell_properties_list = []
 
@@ -76,6 +78,14 @@ class baseObject():
         self.cell_hash = None
         self.velocity  = None
         self.gps_0     = None
+        self.gps_xy    = gps_xy
+
+
+    @property
+    def gps_xy(self, gps_xy=None):
+        if gps_xy is None:
+            return gps_1
+
 
     @property
     def init_gps(self):
@@ -89,15 +99,6 @@ class baseObject():
             dist = distance(self.map.youbot.gps_xy, self.gps_0)
             return dist
 
-    @property
-    def gps_1(self,gps_xy):
-        # Calling this with gps_xy will shift gps_0->gps_1 & gps_1->gps_xy
-        # and then calculate orientation between gps_1 and gps_0
-        if gps_0 is None:
-            return
-        self.gps_0 = gps_1
-        self.gps_1 = gps_xy
-        gps_1
     @property
     def map_rc(self):
         if self.gps_xy[0] is not None:
@@ -217,14 +218,13 @@ class youbotObject(baseObject):
         # self.orientation = get_comp_angle(self)
         map.youbot = self
 
-    # @property
-    # def orientation(self):
-    #     return get_comp_angle(self.sensors["compass"].getValues())
-
     @property
-    def gps_xy(self):
-        xy = [round(youbot.sensors["gps"].getValues()[i] , 3) for i in [0,2]]
-        return xy
+    def getgps(self):
+        gpsxy = self.sensors["gps"].getValues()[0,2]
+        self.gps_xy = gpsxy
+        return gpsxy
+
+
 
 class zombieObject(baseObject):
     def __init__(self, map, zombie_color=None, gps_xy=None, typeid='zombie'):
