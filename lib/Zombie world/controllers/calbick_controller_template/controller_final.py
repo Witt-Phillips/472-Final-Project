@@ -55,15 +55,15 @@ class worldMapObject:
         self.world_object_list = self.world_zombie_list + self.world_berry_list + self.world_solid_list
         self.cell_properties_list = []
 
-        # Init GPS (to base map on)
-        self.init_gps = None
-
         # Berry Probability
         self.prior = to_df(np.ones((4, 4)) / 4)
         self.count = to_df(np.zeros((4, 4)))
         self.draws = np.empty((0, 2))
         self.weights = pd.DataFrame(weights, index=cols, columns=weight_names)
 
+    @property
+    def init_gps(self):
+        return self.youbot.init_gps
 
 class baseObject():
     def __init__(self, map, gps_xy=None, typeid=None, origin_xy=None):
@@ -77,22 +77,17 @@ class baseObject():
         self.velocity  = None
         self.gps_0     = None
 
-        # self.gps_xy = gps_xy
-        # self.map_rc = self.hash_gps_to_map()
-
-        self.origin_xy = origin_xy
-        # WP Added dist to youbout - check!
-        if self.map.youbot is not None:
-            if self.map.youbot.gps_xy is not None and self.gps_xy is not None:
-                dist = distance(self.map.youbot.gps_xy, self.gps_xy)
-            else:
-                dist = None
-        else:
-            dist = None
-        self.dist2youbot = dist
     @property
     def init_gps(self):
         return self.map.init_gps
+
+    @propery
+    def dist2youbot(self):
+        if self.object_id == self.map.youbot.object_id:
+            return 0
+        else:
+            dist = distance(self.map.youbot.gps_xy, self.gps_0)
+            return dist
 
     @property
     def gps_1(self,gps_xy):
@@ -218,8 +213,6 @@ class youbotObject(baseObject):
         self.robot_info = None
         self.sensors = sensors
         self.wheels = wheels
-
-
 
         # self.orientation = get_comp_angle(self)
         map.youbot = self
@@ -395,47 +388,6 @@ def to_df(matrix):
 
 ########### World Initiation Functions ###############
 def init_youbot(map):
-    robot = Supervisor()
-
-    # get the time step of the current world.
-    timestep = int(robot.getBasicTimeStep())
-
-    # health, energy, armour in that order
-    robot_info = [100, 100, 0]
-    passive_wait(0.1, robot, timestep)
-
-    # Sensor initialization
-    gps = robot.getDevice("gps")
-    gps.enable(timestep)
-
-    compass = robot.getDevice("compass")
-    compass.enable(timestep)
-
-    camera8 = robot.getDevice("BackHighRes")
-    camera8.enable(timestep)
-
-    lightSensor = robot.getDevice("light sensor")
-    lightSensor.enable(timestep)
-
-    lidar = robot.getDevice("lidar")
-    lidar.enable(timestep)
-    lidar.enablePointCloud()
-
-    # Wheel initialization
-    fr = robot.getDevice("wheel1")
-    fl = robot.getDevice("wheel2")
-    br = robot.getDevice("wheel3")
-    bl = robot.getDevice("wheel4")
-
-    fr.setPosition(float('inf'))
-    fl.setPosition(float('inf'))
-    br.setPosition(float('inf'))
-    bl.setPosition(float('inf'))
-
-    fr.setVelocity(0.0)
-    fl.setVelocity(0.0)
-    br.setVelocity(0.0)
-    bl.setVelocity(0.0)
 
     sensors = {
         "gps": gps,
@@ -466,56 +418,186 @@ def init_youbot(map):
 
 ########### Main Function ###############
 def main(simparams=None):
+    robot = Supervisor()
+
+    # get the time step of the current world.
+    timestep = int(robot.getBasicTimeStep())
+
+    # health, energy, armour in that order
+    robot_info = [100, 100, 0]
+    passive_wait(0.1, robot, timestep)
+    pc = 0
+    timer = 0
+
+    # ------------------CHANGE CODE BELOW HERE ONLY--------------------------
+
+    # COMMENT OUT ALL SENSORS THAT ARE NOT USED. READ SPEC SHEET FOR MORE DETAILS
+    # accelerometer = robot.getDevice("accelerometer")
+    # accelerometer.enable(timestep)
+
+    gps = robot.getDevice("gps")
+    gps.enable(timestep)
+
+    # compass = robot.getDevice("compass")
+    # compass.enable(timestep)
+
+    # camera1 = robot.getDevice("ForwardLowResBigFov")
+    # camera1.enable(timestep)
+
+    # camera2 = robot.getDevice("ForwardHighResSmallFov")
+    # camera2.enable(timestep)
+
+    # camera3 = robot.getDevice("ForwardHighRes")
+    # camera3.enable(timestep)
+
+    # camera4 = robot.getDevice("ForwardHighResSmall")
+    # camera4.enable(timestep)
+
+    # camera5 = robot.getDevice("BackLowRes")
+    # camera5.enable(timestep)
+
+    # camera6 = robot.getDevice("RightLowRes")
+    # camera6.enable(timestep)
+
+    # camera7 = robot.getDevice("LeftLowRes")
+    # camera7.enable(timestep)
+
+    camera8 = robot.getDevice("BackHighRes")
+    camera8.enable(timestep)
+
+    # gyro = robot.getDevice("gyro")
+    # gyro.enable(timestep)
+
+    # lightSensor = robot.getDevice("light sensor")
+    # lightSensor.enable(timestep)
+
+    # receiver = robot.getDevice("receiver")
+    # receiver.enable(timestep)
+
+    # rangeFinder = robot.getDevice("range-finder")
+    # rangeFinder.enable(timestep)
+
+    lidar = robot.getDevice("lidar")
+    lidar.enable(timestep)
+    lidar.enablePointCloud()
+
+    # Wheel initialization
+    fr = robot.getDevice("wheel1")
+    fl = robot.getDevice("wheel2")
+    br = robot.getDevice("wheel3")
+    bl = robot.getDevice("wheel4")
+
+    fr.setPosition(float('inf'))
+    fl.setPosition(float('inf'))
+    br.setPosition(float('inf'))
+    bl.setPosition(float('inf'))
+
+    fr.setVelocity(0.0)
+    fl.setVelocity(0.0)
+    br.setVelocity(0.0)
+    bl.setVelocity(0.0)
+
+    robot_node = robot.getFromDef("Youbot")
+    trans_field = robot_node.getField("translation")
+
+    get_all_berry_pos(robot)
+
+    robot_not_dead = 1
+
+# --------- Start of our code -----------------------
     # Initialize main map & establish relative center from GPS
     world_map = worldMapObject()
 
     # Initialize youbot in world with sensors
     youbot = init_youbot(world_map)
-    robot = youbot.wb_robot
+    robot  = youbot.wb_robot
 
-    # Run get all berry positions from controllers/youbot_controllers/youbot_zombie.py
-    get_all_berry_pos(robot)
+    sensors = {
+        "gps": gps,
+        "lidar": lidar,
+        "camera": camera8
+    }
 
-    # Initialize plot
+    wheels = {
+        "front_right": fr,
+        "front_left": fl,
+        "back_right": br,
+        "back_left": bl,
+    }
+
+    youbot = youbotObject(map, sensors=sensors, wheels=wheels)
+    youbot.wb_robot   = robot
+    youbot.robot_info = robot_info
+
+    # initialize Values
+    robot.step(TIME_STEP)
+    init_gps = youbot.sensors["gps"].getValues()
+    youbot.gps_0 = round(youbot.sensors["gps"].getValues()[0, 2], 3)
+
+
+    # Initialize plot if we are plotting
+    plotMap = false
     if plotMap:
         fig, ax = plot_init(world_map)
 
-    robot_not_dead = 1
-    timestep = world_map.timestep
-    robot_node = robot.getFromDef("Youbot")
-    trans_field = robot_node.getField("translation")
 
-    youbot.init_gps = round(youbot.sensors["gps"].getValues()[0, 2], 3)
-
-    # Temp variable to track coord change across time steps
-    temp_coords = ""
-
-    # Sensor Control Loop
+# ------------ Start Sensor Control Loop ------------------
     while robot.step(TIME_STEP) != -1:
-
         # Get sensor data
-        gps_values = youbot.sensors["gps"].getValues()
-        lidar_values = youbot.sensors["lidar"].getRangeImage()
-        compass_values = youbot.sensors["compass"].getValues()
+        gps_values = gps.getValues()
+        lidar_values = lidar.getRangeImage()
+        compass_values = compass.getValues()
 
-        # Update youbot orientation and gps position
-        youbot.orientation = get_comp_angle(compass_values)
-        youbot.gps_xy = round(gps_values[0, 2], 3)
+        orientation = get_comp_angle(compass_values)
+        gpsX = round(gps_values[0], 3)
+        gpsY = round(gps_values[2], 3)
 
-        # Lidar Mapping
-        for i in range(len(lidar_values)):
-            if lidar_values[i] != float('inf') and lidar_values[i] != 0.0:
-                object_list = world_map.world_object_list
+        # Cast gps readings to map coords
+        mappedX = mainMap.gps_to_map(mainMap.initialReading[0], gpsX)
+        mappedY = mainMap.gps_to_map(mainMap.initialReading[1], gpsY)
+        coords = str_coords(mappedX, mappedY)
 
-                # This could be made more efficient if we limit search to only hash coordinates within youbot (r, 𝜃)
-                gpsvals, = [object.gps_xy for object in object_list]
+        # Create new dictionary entry if cell unencountered
+        if mainMap.cellTable.get(coords) is None:
+            mainMap.cellTable[coords] = MapCell(mappedX, mappedY, None, None, None, None)
 
-                # mainMap.map_lidar(i, lidar_values[i], orientation)
+            # Manipulate current cell
+        mainMap.currCell = mainMap.cellTable.get(coords)
+        mainMap.currCell.visited = True
 
-        # if plotMap:
-        #     new_objects = get_objects_to_update(map)
-        #
-        #     update_plot(map, new_objects, ax)
+    # ------------------CHANGE CODE ABOVE HERE ONLY--------------------------
+
+    while (robot_not_dead == 1):
+
+        if (robot_info[0] < 0):
+            robot_not_dead = 0
+            print("ROBOT IS OUT OF HEALTH")
+            # if(zombieTest):
+            #    print("TEST PASSED")
+            # else:
+            #    print("TEST FAILED")
+            # robot.simulationQuit(20)
+            # exit()
+
+        if (timer % 2 == 0):
+            trans = trans_field.getSFVec3f()
+            robot_info = check_berry_collision(robot_info, trans[0], trans[2], robot)
+            robot_info = check_zombie_collision(robot_info, trans[0], trans[2], robot)
+
+        if (timer % 16 == 0):
+            robot_info = update_robot(robot_info)
+            timer = 0
+
+        if (robot.step(timestep) == -1):
+            exit()
+
+        timer += 1
+
+    # ------------------CHANGE CODE BELOW HERE ONLY--------------------------
+
+    # ------------------CHANGE CODE ABOVE HERE ONLY--------------------------
+
+    return 0
 
 
 def simulate_main(nzombies=3, nberries=10, ntimesteps=100):
@@ -542,348 +624,6 @@ def simulate_main(nzombies=3, nberries=10, ntimesteps=100):
 
 
 
-# %% ----------- Sandbox -----------
 
-# Initialize map
-map = worldMapObject()
 
-# Initialize youbot in world with sensors
-youbot   = init_youbot(map)
-robot    = youbot.wb_robot
-timestep = map.timestep
 
-# Stuff that they put in I believe
-passive_wait(0.1, robot, timestep)
-pc = 0
-timer = 0
-
-# They also use these to update information in the simulation
-robot_node = robot.getFromDef("Youbot")
-trans_field = robot_node.getField("translation")
-
-# Loads the zombie and berry controllers for the world
-get_all_berry_pos(robot)
-
-# %% Run time step by time step
-# NOTE: must run once after moving in Webots manually to get the current sensor readings!
-
-tmp = robot.step(TIME_STEP)
-map.init_gps = [youbot.sensors["gps"].getValues()[0], youbot.sensors["gps"].getValues()[2]]
-
-def runstep(input=None):
-    tmp = robot.step(TIME_STEP)
-    if input is not None:
-        return input
-
-
-#%%
-# ------------- Individual Sandboxes ---------------
-# This allows us to write longer codeblocks that won't be run upon syncing with webots
-
-def pullFrame(youbot):
-    camera = youbot.sensors["camera"]
-    width = camera.getWidth()
-    height = camera.getHeight()
-
-    np_u = np.frombuffer(camera.getImage(), dtype=np.uint8)
-    np_img = np_u.reshape(height, width, 4)
-    np_img = np_img[:, :, ::-1]
-
-    image = np_img[:, :, 1:]
-    h_scale = 2
-    sv_scale = 100 / 255
-
-    return image, cv2.cvtColor(image, cv2.COLOR_RGB2HSV) * [h_scale, sv_scale, sv_scale]
-
-def initplot(isolated_regions):
-    # Assuming 'isolated_regions' is your dictionary of images
-    num_colors = len(isolated_regions)
-
-    # Create a figure and subplots
-    fig, ax = plt.subplots(3, 4, figsize=(15, 8))
-
-    # Initialize subplots for isolated regions
-    mask_ax = {}
-    for i, color in enumerate(isolated_regions, 1):
-        row = 1 * (i > 4)
-        col = (i - 1) % (num_colors // 2)
-        mask_ax[color] = ax[row, col]
-        ax[row, col].imshow(np.zeros_like(list(isolated_regions.values())[0]))  # Placeholder image
-        ax[row, col].set_title(color)
-        ax[row, col].axis('off')
-
-    # Initialize subplots for RGB channels and original image
-    rgb_ax = []
-    for i in range(3):
-        rgb_ax.append(ax[2, i].imshow(np.zeros_like(isolated_regions['blue'][:, :, 0]), cmap='gray'))
-        ax[2, i].set_title(['Red', 'Green', 'Blue'][i])
-        ax[2, i].axis('off')
-
-    original_image = ax[2, -1]
-    imag_ax = original_image.imshow(np.zeros_like(isolated_regions['blue']))
-    original_image.set_title('Image')
-    original_image.axis('off')
-
-    plt.tight_layout()
-    plt.show(block=False)
-    return fig, mask_ax, rgb_ax, imag_ax
-
-def processImageBerry(ims,lidar):
-    pass
-def processImageZombie(ims,lidar):
-    pass
-def processImageSoldid(ims,lidar):
-    pass
-def lidarDetect(map):
-    #%%
-    youbot = map.youbot
-
-    tmp = robot.step(TIME_STEP)
-    lidar_values = map.youbot.sensors["lidar"].getRangeImage()
-
-    x = youbot.gps_xy[0]
-    y = youbot.gps_xy[1]
-    ax = plt.subplots
-    imrange = range(213,300)
-    for i in imrange:
-        if lidar_values[i] != float('inf') and lidar_values[i] != 0.0:
-            theta, gps_xy = map_lidar(map, i, lidar_values[i])
-            ax.plot([x, gps_xy[0]],[y, gps_xy[1]] )
-
-
-
-
-
-
-
-
-
-
-def analyzeColor(map,plts=None):
-
-    # Explore Back Camera Image Processing
-    rgb, hsv = pullFrame(map.youbot)
-
-    # Define saturation and value ranges
-    saturation_range = [30, 100]
-    value_range = [0, 100]
-
-    hue_ranges = {
-        "red1": [0, 5],
-        "red2": [340, 360],
-        "orange": [10, 36],
-        "yellow": [41, 69],
-        "green": [69, 140],
-        "aqua": [155, 195],
-        "blue": [200, 250],
-        "purple": [250, 290],
-        "pink": [299, 333],
-    }
-
-    # Create color ranges in HSV
-    color_ranges = {
-        color: [np.array([hue_low] + [saturation_range[0]] + [value_range[0]]),
-                np.array([hue_high] + [saturation_range[1]] + [value_range[1]])]
-        for color, (hue_low, hue_high) in hue_ranges.items()
-    }
-
-    masks = {}
-    for color, (lower, upper) in color_ranges.items():
-        mask = cv2.inRange(hsv, lower, upper)
-        masks[color] = mask
-
-    masks["red"] = cv2.bitwise_or(masks["red1"], masks["red2"])
-    del(masks["red1"])
-    del (masks["red2"])
-
-    isolated_regions = {}
-    for color, mask in masks.items():
-        isolated_region = cv2.bitwise_and(rgb, rgb, mask=mask)
-        isolated_regions[color] = isolated_region
-
-    # berry_colors  = ("red","yellow","pink","orange","purple")
-    # zombie_colors = ("green","blue","aqua","purple")
-    #
-    # berries = processImageBerry(map,isolated_regions[berry_colors])
-    # zombies = processImageZombie(map,isolated_regions[zombie_colors])
-
-    plotStuff = True
-    if plotStuff:
-        if plts is None:
-            plt.ion()
-            plts = initplot(isolated_regions)
-            return plts
-        else:
-            fig,mask_ax,rgb_ax,imag_ax = plts[0],plts[1] ,plts[2],plts[3]
-            # Update each color region image
-            for color, img in isolated_regions.items():
-                mask_ax[color].images[0].set_data(img)
-
-            # Update RGB channel images
-            for i, channel_img in enumerate([rgb[:, :, i] for i in range(3)]):
-                rgb_ax[i].set_data(channel_img)
-
-            # Update original image
-            imag_ax.set_data(rgb)
-            # Redraw the updated plots
-            fig.canvas.draw()
-            fig.canvas.flush_events()
-
-def isolateCameraRegions(map):
-    # Explore Back Camera Image Processing
-    rgb, hsv = pullFrame(map.youbot)
-
-    # Define saturation and value ranges
-    saturation_range = [30, 100]
-    value_range = [0, 100]
-
-    hue_ranges = {
-        "red1": [0, 5],
-        "red2": [340, 360],
-        "orange": [10, 36],
-        "yellow": [41, 69],
-        "green": [69, 140],
-        "aqua": [155, 195],
-        "blue": [200, 250],
-        "purple": [250, 290],
-        "pink": [299, 333],
-    }
-
-    # Create color ranges in HSV
-    color_ranges = {
-        color: [np.array([hue_low] + [saturation_range[0]] + [value_range[0]]),
-                np.array([hue_high] + [saturation_range[1]] + [value_range[1]])]
-        for color, (hue_low, hue_high) in hue_ranges.items()
-    }
-
-    masks = {}
-    for color, (lower, upper) in color_ranges.items():
-        mask = cv2.inRange(hsv, lower, upper)
-        masks[color] = mask
-
-    masks["red"] = cv2.bitwise_or(masks["red1"], masks["red2"])
-    del (masks["red1"])
-    del (masks["red2"])
-
-    isolated_regions = {}
-    for color, mask in masks.items():
-        isolated_region = cv2.bitwise_and(rgb, rgb, mask=mask)
-        isolated_regions[color] = isolated_region
-
-    return isolated_regions
-
-def analyzeScene(map):
-
-    camera_masks = isolateCameraRegions(map)
-
-    berry_colors = ("red", "yellow", "pink", "orange", "purple")
-    zombie_colors = ("green", "blue", "aqua", "purple")
-
-    berries = processImageBerry(map, isolated_regions[berry_colors])
-    zombies = processImageZombie(map, isolated_regions[zombie_colors])
-
-
-def lidar2image(map):
-#%%
-    tmp = robot.step(TIME_STEP)
-    lidar_values = map.youbot.sensors["lidar"].getRangeImage()
-
-    for i in range(len(lidar_values)):
-        if lidar_values[i] != float('inf') and lidar_values[i] != 0.0:
-            theta,gps_xy = map_lidar(map, i ,lidar_values[i])
-    pass
-
-
-def sandbox_dc():
-# %% Sandbox for Dan
-# Create a figure with subplots
-    plts = analyzeColor(map)
-#%%
-    tmp = robot.step(TIME_STEP)
-    analyzeColor(map, plts)
-
-#%% assess object
-    lidar_objects = lidar2image(map)
-
-    # If lidar is picking up objects in visible region of world map
-    if lidar_objects is not None:
-    # analy
-        analyzeScene(map)
-
-
-def sandbox_wp():
-    # %% Sandbox for Witt
-    #init_youbot(map)
-    tmp = robot.step(TIME_STEP)
-
-# SIMULATE using data structure
-
-    posterior = random_posterior()
-    map.youbot.gps_xy = [youbot.sensors["gps"].getValues()[0], youbot.sensors["gps"].getValues()[2]]
-
-    # Movement
-    youbot.wheels["front_right"].setVelocity(5.0)
-    youbot.wheels["front_left"].setVelocity(5.0)
-    youbot.wheels["back_right"].setVelocity(5.0)
-    youbot.wheels["back_left"].setVelocity(5.0)
-
-    # Probability
-    toggle_prob = False
-    if toggle_prob:
-        nsamples = 5
-
-        for i in range(nsamples):
-            draw = drawfromposterior(posterior)
-            color = rows[draw[0]]
-            effect = cols[draw[1]]
-
-            # Observe base object
-            random_coords = [random.uniform(-8, -4), random.uniform(-5, 0)]
-            base_obj = baseObject(map, random_coords)
-            berry_obj = berryObject(dist=base_obj.dist2youbot,
-                                    berry_color=color,
-                                    map=map,
-                                    gps_xy=random_coords)
-
-            #Print priority score before observation
-            p_score = berry_obj.priority_score()
-            print("Priority score for", berry_obj.color,
-                  "at dist", round(berry_obj.dist2youbot, 2), "is", round(p_score, 2))
-
-            # Observe Berry
-            berry_obj.observe_effect(effect)
-
-        print("Count:\n", map.count)
-        print("Posterior\n", map.prior)
-
-        plot_toggle = False
-        if plot_toggle:
-            # Plotting
-            count = map.count
-            prior = map.prior
-
-            # Create subplots
-            fig, axes = plt.subplots(1, 3, figsize=(25, 8))
-
-            # Display the final updated prior
-            axes[0].imshow(posterior)
-            axes[0].set_title("Posterior")
-
-            axes[1].imshow(count)
-            axes[1].set_title("Berries Seen")
-
-            axes[2].imshow(prior)
-            axes[2].set_title("Prior")
-
-#Usage for berry probability:
-    # On LiDAR scan: create baseObject() instance with positional info
-    # On color confirmation: replace with BerryObject() instance.
-        # Appends berry to map.berryList
-        # Priority score calculated. Retrievable at berry_obj.priority
-    # On observation: Call mathod berry_obj.observe_effect(effect)
-        #Updates probability map (map.prior)
-
-def sandbox_ma():
-    # %% Sandbox for Mohammad
-    tmp = robot.step(TIME_STEP)
-    youbot.sensors["gps"].getValues()
