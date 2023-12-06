@@ -17,13 +17,17 @@ import pandas as pd
 import cv2
 import math
 import matplotlib.pyplot as plt
-from math import sin, cos
+from math import sin, cos, atan
 import random
+from pathfinding.core.diagonal_movement import DiagonalMovement
+from pathfinding.core.grid import Grid
+from pathfinding.finder.a_star import AStarFinder
 
 # Define Global Variables
 _2pi = 2 * math.pi
 grid_width_default = 0.1
 plotMap = True
+CELL_WIDTH = 0.1
 
 #Old Class Definitions
 # %%  Define Classes
@@ -42,6 +46,19 @@ weights = np.array(([[0.5, 0.5, 0.5],
                      [0.5, 0.5, 0.5],
                      [0.5, 0.5, 0.5],
                      [0.5, 0.5, 0.5]]))
+zombie_colors = [
+    'green',
+    'blue',
+    'aqua',
+    'purple'
+]
+base_zombie_ranges = {
+    # vision radius for blue zombies?
+    "green": 2,
+    "blue": 2,
+    "aqua": 3,
+    "purple": 2,
+}
 
 class worldMapObject:
     def __init__(self, youbot=None, grid_cell_width=grid_width_default):
@@ -56,7 +73,7 @@ class worldMapObject:
         self.cell_properties_list = []
 
         # Init GPS (to base map on)
-        self.init_gps = None
+        self.init_gps = ()
 
         # Berry Probability
         self.prior = to_df(np.ones((4, 4)) / 4)
@@ -69,17 +86,22 @@ class baseObject():
     def __init__(self, map, gps_xy=None, typeid=None, origin_xy=None):
         if gps_xy is None:
             gps_xy = [None, None]
-        self.map       = map
-        self.typeid    = typeid
+        self.map = map
+        self.typeid = typeid
         self.object_id = id(self)
         self.cell_idx  = None
         self.cell_hash = None
+<<<<<<< HEAD
         self.velocity  = None
         self.gps_0     = None
 
         # self.gps_xy = gps_xy
         # self.map_rc = self.hash_gps_to_map()
 
+=======
+        self.gps_xy = gps_xy
+        self.map_rc = self.hash_gps_to_map()
+>>>>>>> 9b5908a15c41d9c097ef6bcdc9dc85c58e3abfa5
         self.origin_xy = origin_xy
         # WP Added dist to youbout - check!
         if self.map.youbot is not None:
@@ -90,10 +112,9 @@ class baseObject():
         else:
             dist = None
         self.dist2youbot = dist
-    @property
-    def init_gps(self):
-        return self.map.init_gps
+        self.angle2youbot = None
 
+<<<<<<< HEAD
     @property
     def gps_1(self,gps_xy):
         # Calling this with gps_xy will shift gps_0->gps_1 & gps_1->gps_xy
@@ -106,7 +127,14 @@ class baseObject():
     @property
     def map_rc(self):
         if self.gps_xy[0] is not None:
+=======
+    def hash_gps_to_map(self):
+        if self.gps_xy[1] is not None:
+>>>>>>> 9b5908a15c41d9c097ef6bcdc9dc85c58e3abfa5
             map_rc = convert_gps_to_map(self.gps_xy, self.map)
+            # Update object worldMap if necessary - ERROR - cannot be part of initialization
+            # if self.map_rc != map_rc:
+            #     self.update_cell_table(map_rc)
             return map_rc
         else:
             return None
@@ -159,8 +187,14 @@ class berryObject(baseObject):
         self.color = berry_color
         self.effect = effect_type
         self.dist2youbot = dist
+<<<<<<< HEAD
         self.priority  = self.priority_score()
         self.reachable = None
+=======
+        self.priority = self.priority_score()
+        self.gps_xy = gps_xy
+        self.map_rc = self.hash_gps_to_map() if gps_xy is not None else None
+>>>>>>> 9b5908a15c41d9c097ef6bcdc9dc85c58e3abfa5
         map.world_berry_list.append(self)
 
     def observe_effect(self, obs_effect):
@@ -175,6 +209,7 @@ class berryObject(baseObject):
 
         self.map.prior = to_df(prior)
         self.map.count = to_df(count)
+        self.map.world_berry_list = sorted(self.map.world_berry_list, key=lambda x: x.priority, reverse=True)
 
     def priority_score(self):
         # Get effect1 (likely primary) and effect 2 (likely secondary), and their probabilities
@@ -218,6 +253,7 @@ class youbotObject(baseObject):
         self.robot_info = None
         self.sensors = sensors
         self.wheels = wheels
+<<<<<<< HEAD
 
 
 
@@ -233,11 +269,19 @@ class youbotObject(baseObject):
         xy = [round(youbot.sensors["gps"].getValues()[i] , 3) for i in [0,2]]
         return xy
 
+=======
+        self.init_gps = init_gps_xy
+        self.bearing = None
+        self.map_rc = self.hash_gps_to_map() if gps_xy is not None else None
+        map.youbot = self
+
+>>>>>>> 9b5908a15c41d9c097ef6bcdc9dc85c58e3abfa5
 class zombieObject(baseObject):
     def __init__(self, map, zombie_color=None, gps_xy=None, typeid='zombie'):
         super().__init__(map, gps_xy, typeid)
         self.color = zombie_color
         self.chasing = False
+        self.map_rc = self.hash_gps_to_map() if gps_xy is not None else None
         if gps_xy is not None:
             self.bearing = distance(map.youbot.gps_xy, self.gps_xy)
             self.distance = map.youbot.gps_xy
@@ -247,12 +291,13 @@ class zombieObject(baseObject):
 
         map.world_zombie_list.append(self)
 
-
-class wallObject():
+#Addded inherit from base object  - that OK?
+class wallObject(baseObject):
     def __init__(self, map, wall_color='brown', gps_xy=None, typeid='wall', moveable=False):
         super().__init__(map, gps_xy, typeid)
         self.moveable = moveable
         self.color = "green" if self.moveable else "brown"
+        self.map_rc = self.hash_gps_to_map() if gps_xy is not None else None
         map.world_solid_list.append(self)
 
 
@@ -284,9 +329,75 @@ def getObjectRGB(object):
     return color_id
 
 
-def orient_to_object(youbot, object):
-    pass
+def angle2object(*, youbot=None, obj=None, gps_xy=None):
+    if gps_xy is not None:
+        x, y = gps_xy
+    elif obj is not None:
+        x, y = obj.gps_xy
+    else:
+        return "Tried to path without valid target!"
 
+    xdif = youbot.gps_xy[0] - x
+    ydif = youbot.gps_xy[1] - y
+    # Add pi / 2 to angle?
+    angle = math.atan2(ydif, xdif) - youbot.bearing + (math.pi / 2)
+    factor = abs(angle // (2 * math.pi))
+    if factor != 0:
+        angle /= factor
+    if angle < 0:
+        angle = angle + (2 * math.pi)
+    #print("Angle to obj:", angle * (180 / math.pi))
+    return angle
+
+
+def path_to_object(*, youbot=None, obj=None, gps_xy=None):
+    if youbot is None:
+        return "Tried to path without valid youbot!"
+    if gps_xy is not None:
+        angle = angle2object(youbot=youbot, gps_xy=gps_xy)
+        dist = distance(youbot.gps_xy, gps_xy)
+    elif obj is not None:
+        angle = angle2object(youbot=youbot, obj=obj)
+        dist = distance(youbot.gps_xy, obj.gps_xy)
+    else:
+        return "Tried to path without valid target!"
+
+    if dist < 0.1:
+        print("Waypoint reached!")
+        youbot.wheels["front_right"].setVelocity(8.0)
+        youbot.wheels["front_left"].setVelocity(8.0)
+        youbot.wheels["back_right"].setVelocity(8.0)
+        youbot.wheels["back_left"].setVelocity(8.0)
+    # straight
+    elif angle < to_rad(5) or angle > to_rad(355):
+        youbot.wheels["front_right"].setVelocity(8.0)
+        youbot.wheels["front_left"].setVelocity(8.0)
+        youbot.wheels["back_right"].setVelocity(8.0)
+        youbot.wheels["back_left"].setVelocity(8.0)
+    # soft left
+    elif angle < to_rad(45):
+        youbot.wheels["front_right"].setVelocity(4.0)
+        youbot.wheels["front_left"].setVelocity(8.0)
+        youbot.wheels["back_right"].setVelocity(4.0)
+        youbot.wheels["back_left"].setVelocity(8.0)
+    # soft right
+    elif angle > to_rad(315):
+        youbot.wheels["front_right"].setVelocity(8.0)
+        youbot.wheels["front_left"].setVelocity(4.0)
+        youbot.wheels["back_right"].setVelocity(8.0)
+        youbot.wheels["back_left"].setVelocity(4.0)
+    # hard right
+    elif angle > math.pi:
+        youbot.wheels["front_right"].setVelocity(5.0)
+        youbot.wheels["front_left"].setVelocity(-5.0)
+        youbot.wheels["back_right"].setVelocity(5.0)
+        youbot.wheels["back_left"].setVelocity(-5.0)
+    # hard left
+    else:
+        youbot.wheels["front_right"].setVelocity(-5.0)
+        youbot.wheels["front_left"].setVelocity(5.0)
+        youbot.wheels["back_right"].setVelocity(-5.0)
+        youbot.wheels["back_left"].setVelocity(5.0)
 
 ########## Utility functions
 
@@ -305,9 +416,16 @@ def convert_gps_to_map(gps_xy, map):
     return [(a - b) // map.cell_width for a, b in zip(gps_xy, map.init_gps)]
 
 
+# Check this
+def convert_map_to_gps(idx, map):
+    return [(a * map.cell_width) + b for a, b in zip(idx, map.init_gps)]
+
+
 def get_comp_angle(compass_values):
-    angle = math.atan2(compass_values[1], compass_values[0])
-    return angle + (_2pi * (angle < 0.0))
+    angle = math.atan2(compass_values[1], compass_values[0]) - (math.pi / 2)
+    if angle < 0:
+        angle = angle + (2 * math.pi)
+    return angle
 
 
 def map_lidar(map, beam_number, magnitude):
@@ -335,6 +453,9 @@ def assign_object(map, gps_xy):
     pass
 
 # Probability Utility Functions
+
+def to_rad(deg):
+    return deg * (math.pi / 180)
 
 
 def second_largest_column(row):
@@ -452,9 +573,11 @@ def init_youbot(map):
         "back_left": bl,
     }
 
-    youbot = youbotObject(map,sensors=sensors,wheels=wheels)
-    youbot.wb_robot   = robot
+    youbot = youbotObject(map)
+    youbot.wb_robot = robot
     youbot.robot_info = robot_info
+    youbot.sensors = sensors
+    youbot.wheels = wheels
 
     init_gps = youbot.sensors["gps"].getValues()
     youbot.gps_0 = [init_gps[0], init_gps[2]]
@@ -513,7 +636,7 @@ def main(simparams=None):
                 # mainMap.map_lidar(i, lidar_values[i], orientation)
 
         # if plotMap:
-        #     new_objects = get_objects_to_update(map)
+        #     new_objects = get_objects_to_update(world_map)
         #
         #     update_plot(map, new_objects, ax)
 
@@ -545,12 +668,12 @@ def simulate_main(nzombies=3, nberries=10, ntimesteps=100):
 # %% ----------- Sandbox -----------
 
 # Initialize map
-map = worldMapObject()
+world_map = worldMapObject()
 
 # Initialize youbot in world with sensors
-youbot   = init_youbot(map)
+youbot   = init_youbot(world_map)
 robot    = youbot.wb_robot
-timestep = map.timestep
+timestep = world_map.timestep
 
 # Stuff that they put in I believe
 passive_wait(0.1, robot, timestep)
@@ -568,12 +691,7 @@ get_all_berry_pos(robot)
 # NOTE: must run once after moving in Webots manually to get the current sensor readings!
 
 tmp = robot.step(TIME_STEP)
-map.init_gps = [youbot.sensors["gps"].getValues()[0], youbot.sensors["gps"].getValues()[2]]
-
-def runstep(input=None):
-    tmp = robot.step(TIME_STEP)
-    if input is not None:
-        return input
+world_map.init_gps = [youbot.sensors["gps"].getValues()[0],youbot.sensors["gps"].getValues()[2]]
 
 
 #%%
@@ -729,6 +847,7 @@ def analyzeColor(map,plts=None):
             fig.canvas.draw()
             fig.canvas.flush_events()
 
+
 def isolateCameraRegions(map):
     # Explore Back Camera Image Processing
     rgb, hsv = pullFrame(map.youbot)
@@ -782,7 +901,6 @@ def analyzeScene(map):
     berries = processImageBerry(map, isolated_regions[berry_colors])
     zombies = processImageZombie(map, isolated_regions[zombie_colors])
 
-
 def lidar2image(map):
 #%%
     tmp = robot.step(TIME_STEP)
@@ -790,45 +908,161 @@ def lidar2image(map):
 
     for i in range(len(lidar_values)):
         if lidar_values[i] != float('inf') and lidar_values[i] != 0.0:
-            theta,gps_xy = map_lidar(map, i ,lidar_values[i])
+            print(lidar_values[i])
     pass
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 9b5908a15c41d9c097ef6bcdc9dc85c58e3abfa5
 def sandbox_dc():
 # %% Sandbox for Dan
 # Create a figure with subplots
-    plts = analyzeColor(map)
+    plts = analyzeColor(world_map)
 #%%
     tmp = robot.step(TIME_STEP)
-    analyzeColor(map, plts)
+    analyzeColor(world_map,plts)
 
 #%% assess object
-    lidar_objects = lidar2image(map)
+    lidar_objects = lidar2image(world_map)
 
     # If lidar is picking up objects in visible region of world map
     if lidar_objects is not None:
     # analy
-        analyzeScene(map)
+        analyzeScene(world_map)
+
+
+def gps_to_occupancy(gps_xy, min_x, min_y, cell_width):
+    x, y = [int((a - b) // cell_width) for a, b in zip(gps_xy, (min_x, min_y))]
+    return x, y
+
+
+def occupancy_to_gps(idx, min_x, min_y, cell_width):
+    return [(a * cell_width) + b for a, b in zip(idx, (min_x, min_y))]
+
+def list_min_max_gps(lst):
+    min_max = {
+        'min_x': min(lst, key=lambda obj: obj.gps_xy[0]).gps_xy[0],
+        'max_x': max(lst, key=lambda obj: obj.gps_xy[0]).gps_xy[0],
+        'min_y': min(lst, key=lambda obj: obj.gps_xy[1]).gps_xy[1],
+        'max_y': max(lst, key=lambda obj: obj.gps_xy[1]).gps_xy[1]
+    }
+    return min_max
+
+
+def build_occupancy_grid(map):
+    # Bounds - replace these with parameters.
+    min_max_gps = list_min_max_gps(map.world_object_list)
+    min_x = min_max_gps["min_x"]
+    max_x = min_max_gps["max_x"]
+    min_y = min_max_gps["min_y"]
+    max_y = min_max_gps["max_y"]
+
+    # Basic map info
+    cell_width = map.cell_width
+    map_width = int(((max_x - min_x) // cell_width) + 1)
+    map_height = int(((max_y - min_y) // cell_width) + 1)
+
+    occupancy_matrix = [[1 for i in range(map_height)] for j in range(map_width)]
+
+    # POPULATE OCCUPANCY MATRIX
+    for obj in world_map.world_object_list:
+        x, y = gps_to_occupancy(obj.gps_xy, min_x, min_y, cell_width)
+
+        if obj.typeid == 'zombie':
+            zombie_range = int(base_zombie_ranges[obj.color] // cell_width)
+            # create dist to nearest berry for purple zombies
+            for i in range(x - zombie_range, x + zombie_range):
+                for j in range(y - zombie_range, y + zombie_range):
+                    if 0 <= i < (map_width - 1) and 0 <= j < (map_height - 1):
+                        # print("Tried to add at idx", i, j)
+                        occupancy_matrix[i][j] = 0
+        occupancy_matrix[x][y] = 0
+    grid = Grid(matrix=occupancy_matrix)
+    return grid
+
+
+def print_path(map, grid, path, target):
+    cell_width = map.cell_width
+    min_max_gps = list_min_max_gps(map.world_object_list)
+    min_x = min_max_gps["min_x"]
+    max_x = min_max_gps["max_x"]
+    min_y = min_max_gps["min_y"]
+    max_y = min_max_gps["max_y"]
+
+    start = gps_to_occupancy(map.youbot.gps_xy, min_x, min_y, cell_width)
+    end = gps_to_occupancy(target.gps_xy, min_x, min_y, cell_width)
+    print('path length:', len(path))
+    print(grid.grid_str(path=path, start=start, end=end))
+
+
+def calculate_path(map, grid, target):
+    cell_width = map.cell_width
+    min_max_gps = list_min_max_gps(map.world_object_list)
+    min_x = min_max_gps["min_x"]
+    max_x = min_max_gps["max_x"]
+    min_y = min_max_gps["min_y"]
+    max_y = min_max_gps["max_y"]
+
+    youbot_x, youbot_y = gps_to_occupancy(map.youbot.gps_xy, min_x, min_y, cell_width)
+    start = grid.node(youbot_x, youbot_y)
+    # Get position of target berry
+    berry_x, berry_y = gps_to_occupancy(target.gps_xy, min_x, min_y, cell_width)
+    end = grid.node(berry_x, berry_y)
+
+    finder = AStarFinder(diagonal_movement=DiagonalMovement.always)
+    path, runs = finder.find_path(start, end, grid)
+    return path
+
+
+def berry_seeking_target_coords(map, num_berries_considered, steps_ahead, display_path=False):
+    # Initialization functions
+    min_max_gps = list_min_max_gps(world_map.world_object_list)
+    grid = build_occupancy_grid(map)
+    potential_paths = []
+
+    # Calculate paths for n most promising berries
+    for i in range(num_berries_considered):
+        if i < len(world_map.world_berry_list):
+            potential_paths.append(calculate_path(world_map, grid, world_map.world_berry_list[i]))
+            grid.cleanup()
+
+    # Find minimum length valid path
+    if all(el == [] for el in potential_paths):
+        print("No berry target found.")
+        return None
+
+    optimal_path = min(filter(lambda x: len(x) > 0, potential_paths), key=len, default=None)
+    optimal_berry = world_map.world_berry_list[potential_paths.index(optimal_path)]
+    if len(optimal_path) <= steps_ahead:
+        steps_ahead = len(optimal_path) - 1
+
+    # path_to_take = [(obj.x, obj.y) for obj in optimal_path]
+    gps_target = occupancy_to_gps(optimal_path[steps_ahead], min_max_gps["min_x"], min_max_gps["min_y"], CELL_WIDTH)
+
+    # Optional print
+    if display_path:
+        print_path(world_map, grid, optimal_path, optimal_berry)
+        print("Optimal Berry:", optimal_berry.color, "at", optimal_berry.gps_xy)
+        print("Youbot:", youbot.gps_xy)
+        print("Step to:", gps_target)
+
+
+    return gps_target, optimal_berry
 
 
 def sandbox_wp():
-    # %% Sandbox for Witt
-    #init_youbot(map)
+# %% Sandbox for Witt
     tmp = robot.step(TIME_STEP)
 
 # SIMULATE using data structure
-
     posterior = random_posterior()
-    map.youbot.gps_xy = [youbot.sensors["gps"].getValues()[0], youbot.sensors["gps"].getValues()[2]]
-
-    # Movement
-    youbot.wheels["front_right"].setVelocity(5.0)
-    youbot.wheels["front_left"].setVelocity(5.0)
-    youbot.wheels["back_right"].setVelocity(5.0)
-    youbot.wheels["back_left"].setVelocity(5.0)
+    world_map.youbot.gps_xy = [youbot.sensors["gps"].getValues()[0], youbot.sensors["gps"].getValues()[2]]
+    world_map.world_berry_list = []
+    world_map.youbot.bearing = get_comp_angle(world_map.youbot.sensors["compass"].getValues())
 
     # Probability
-    toggle_prob = False
+    toggle_prob = True
     if toggle_prob:
         nsamples = 5
 
@@ -838,11 +1072,11 @@ def sandbox_wp():
             effect = cols[draw[1]]
 
             # Observe base object
-            random_coords = [random.uniform(-8, -4), random.uniform(-5, 0)]
-            base_obj = baseObject(map, random_coords)
+            random_coords = [random.uniform(-10, 10), random.uniform(-10, 10)]
+            base_obj = baseObject(world_map, random_coords)
             berry_obj = berryObject(dist=base_obj.dist2youbot,
                                     berry_color=color,
-                                    map=map,
+                                    map=world_map,
                                     gps_xy=random_coords)
 
             #Print priority score before observation
@@ -853,14 +1087,19 @@ def sandbox_wp():
             # Observe Berry
             berry_obj.observe_effect(effect)
 
-        print("Count:\n", map.count)
-        print("Posterior\n", map.prior)
+        # Sort priority list
+        world_map.world_berry_list = sorted(world_map.world_berry_list, key=lambda x: x.priority, reverse=True)
+        for berry in world_map.world_berry_list:
+            print("Color:", berry.color, "Dist:", berry.dist2youbot, "Priority:", berry.priority)
+
+        print("Count:\n", world_map.count)
+        print("Posterior\n", world_map.prior)
 
         plot_toggle = False
         if plot_toggle:
             # Plotting
-            count = map.count
-            prior = map.prior
+            count = world_map.count
+            prior = world_map.prior
 
             # Create subplots
             fig, axes = plt.subplots(1, 3, figsize=(25, 8))
@@ -875,13 +1114,72 @@ def sandbox_wp():
             axes[2].imshow(prior)
             axes[2].set_title("Prior")
 
-#Usage for berry probability:
-    # On LiDAR scan: create baseObject() instance with positional info
-    # On color confirmation: replace with BerryObject() instance.
-        # Appends berry to map.berryList
-        # Priority score calculated. Retrievable at berry_obj.priority
-    # On observation: Call mathod berry_obj.observe_effect(effect)
-        #Updates probability map (map.prior)
+    # identify berry to seek
+    berry2seek = world_map.world_berry_list[0]
+# %% Pathing Sim
+    youbot.gps_xy = [youbot.sensors["gps"].getValues()[0], youbot.sensors["gps"].getValues()[2]]
+    world_map.world_object_list = []
+
+    # zombies
+    num_zombies = 5
+    for i in range(num_zombies):
+        zombie = zombieObject(world_map,
+                              random.choice(zombie_colors),
+                              (random.uniform(-10, 10), random.uniform(-10, 10)),
+                              )
+        world_map.world_zombie_list.append(zombie)
+        # Add this behavior to zombies, walls, and berries!
+        world_map.world_object_list.append(zombie)
+
+    # walls
+    num_walls = 30
+    for i in range(num_walls):
+        wall = baseObject(world_map,
+                          (random.uniform(-10, 10), random.uniform(-10, 10)),
+                          )
+        world_map.world_solid_list.append(wall)
+        world_map.world_object_list.append(wall)
+
+    # berries
+    for berry in world_map.world_berry_list:
+        berry.gps_xy = (random.uniform(-10, 10), random.uniform(-10, 10))
+        world_map.world_object_list.append(berry)
+
+    # append youbot to world object list
+    world_map.world_object_list.append(world_map.youbot)
+
+    # CHART FOR TOP N BERRIES
+    target_coords, optimal_berry = berry_seeking_target_coords(world_map, 2, 3, display_path=True)
+
+    # %% Movement based on gps_xy
+    move_from_pathing = True
+    if move_from_pathing:
+        steps = 75
+
+        for i in range(steps):
+            # Update Sensors
+            tmp = robot.step(TIME_STEP)
+            youbot.gps_xy = [youbot.sensors["gps"].getValues()[0], youbot.sensors["gps"].getValues()[2]]
+            youbot.bearing = get_comp_angle(world_map.youbot.sensors["compass"].getValues())
+            if i % 10 == 1:
+                target_coords, optimal_berry = berry_seeking_target_coords(world_map, 2, 3, display_path=False)
+
+            # Print testing
+            print_on = False
+            if print_on:
+                if i % 10 == 1:
+                    # print("Angle to obj:", angle2object(youbot=youbot, gps_xy=target_coords) * (180 / math.pi))
+                    # print("Dist to berry:", distance(youbot.gps_xy, target_coords))
+                    # print("Orientation:", youbot.bearing * (180 / math.pi))
+                    print("Youbot:", youbot.gps_xy)
+                    print("Next path coords:", target_coords)
+                    print("Berry coords", optimal_berry.gps_xy)
+
+
+            if i % 3 == 1:
+                path_to_object(youbot=youbot, gps_xy=target_coords)
+
+
 
 def sandbox_ma():
     # %% Sandbox for Mohammad
