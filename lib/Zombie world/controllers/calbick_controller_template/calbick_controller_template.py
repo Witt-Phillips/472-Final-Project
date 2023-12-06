@@ -89,10 +89,19 @@ class baseObject():
         self.map = map
         self.typeid = typeid
         self.object_id = id(self)
-        self.cell_idx = None
+        self.cell_idx  = None
         self.cell_hash = None
+<<<<<<< HEAD
+        self.velocity  = None
+        self.gps_0     = None
+
+        # self.gps_xy = gps_xy
+        # self.map_rc = self.hash_gps_to_map()
+
+=======
         self.gps_xy = gps_xy
         self.map_rc = self.hash_gps_to_map()
+>>>>>>> 9b5908a15c41d9c097ef6bcdc9dc85c58e3abfa5
         self.origin_xy = origin_xy
         # WP Added dist to youbout - check!
         if self.map.youbot is not None:
@@ -105,8 +114,23 @@ class baseObject():
         self.dist2youbot = dist
         self.angle2youbot = None
 
+<<<<<<< HEAD
+    @property
+    def gps_1(self,gps_xy):
+        # Calling this with gps_xy will shift gps_0->gps_1 & gps_1->gps_xy
+        # and then calculate orientation between gps_1 and gps_0
+        if gps_0 is None:
+            return
+        self.gps_0 = gps_1
+        self.gps_1 = gps_xy
+        gps_1
+    @property
+    def map_rc(self):
+        if self.gps_xy[0] is not None:
+=======
     def hash_gps_to_map(self):
         if self.gps_xy[1] is not None:
+>>>>>>> 9b5908a15c41d9c097ef6bcdc9dc85c58e3abfa5
             map_rc = convert_gps_to_map(self.gps_xy, self.map)
             # Update object worldMap if necessary - ERROR - cannot be part of initialization
             # if self.map_rc != map_rc:
@@ -114,6 +138,25 @@ class baseObject():
             return map_rc
         else:
             return None
+
+    @property
+    def orientation(self):
+        x0,y0 = [i for i in self.gps_0]
+        x1,y1 = [i for i in self.gps_xy]
+
+        # Calculate the vector components
+        dx = x1 - x0
+        dy = y1 - y0
+
+        # Calculate the angle from the x-axis
+        angle_from_x_axis = math.atan2(dy, dx)
+
+        # Calculate the angle from the y-axis
+        angle_from_y_axis = math.pi / 2 - angle_from_x_axis
+
+        # Convert the angle to degrees
+        angle_from_y_axis_degrees = math.degrees(angle_from_y_axis)
+        return angle_from_y_axis
 
     def update_cell_table(self, cell_rc):
         # This function is called only when new_map_rc and old_map_rc don't match
@@ -144,9 +187,14 @@ class berryObject(baseObject):
         self.color = berry_color
         self.effect = effect_type
         self.dist2youbot = dist
+<<<<<<< HEAD
+        self.priority  = self.priority_score()
+        self.reachable = None
+=======
         self.priority = self.priority_score()
         self.gps_xy = gps_xy
         self.map_rc = self.hash_gps_to_map() if gps_xy is not None else None
+>>>>>>> 9b5908a15c41d9c097ef6bcdc9dc85c58e3abfa5
         map.world_berry_list.append(self)
 
     def observe_effect(self, obs_effect):
@@ -205,11 +253,29 @@ class youbotObject(baseObject):
         self.robot_info = None
         self.sensors = sensors
         self.wheels = wheels
+<<<<<<< HEAD
+
+
+
+        # self.orientation = get_comp_angle(self)
+        map.youbot = self
+
+    # @property
+    # def orientation(self):
+    #     return get_comp_angle(self.sensors["compass"].getValues())
+
+    @property
+    def gps_xy(self):
+        xy = [round(youbot.sensors["gps"].getValues()[i] , 3) for i in [0,2]]
+        return xy
+
+=======
         self.init_gps = init_gps_xy
         self.bearing = None
         self.map_rc = self.hash_gps_to_map() if gps_xy is not None else None
         map.youbot = self
 
+>>>>>>> 9b5908a15c41d9c097ef6bcdc9dc85c58e3abfa5
 class zombieObject(baseObject):
     def __init__(self, map, zombie_color=None, gps_xy=None, typeid='zombie'):
         super().__init__(map, gps_xy, typeid)
@@ -386,96 +452,6 @@ def map_lidar(map, beam_number, magnitude):
 def assign_object(map, gps_xy):
     pass
 
-
-# -------------- Plotting Functions ------------
-def plot_init(map):
-    ubot = map.youbot
-    zombies = map.world_zombie_list
-    berries = map.world_berry_list
-    solids = map.world_solid_list
-
-    # Initialize plot
-    plt.ion()
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    ax.set_xlim(-10, 10)
-    ax.set_ylim(-10, 10)
-    ax.set_aspect('equal')
-    ax.grid()
-
-    tags = ['_'.join([obj.typeid, obj.color]) for obj in map.cell_object_list]
-    unique_tags = np.unique(tags)
-
-    # Lambda function to filter objects by typeid
-    filter_by_typeid = lambda typeid: [obj for obj in map.cell_object_list if obj.typeid == typeid]
-    filter_by_typeid = lambda typeid: [obj for obj in map.cell_object_list if obj.typeid == typeid]
-    # Creating the dictionary
-    groot_tags = {tag: filter_by_typeid(tag) for tag in unique_tags}
-
-    # # Adding additional keys if needed
-    # groot_tags["youbot"] = []
-    # groot_tags["visit_map"] = some_visit_map_value
-    #
-    # object_list = map.cell_object_list
-    #
-    # max_cell  = max([max(obj.map_rc) for obj in object_list])
-    # max_grid  = max_cell + 0.1
-    # grid_range = np.arange(-max_grid, max_grid, 1)
-    # ax.set_xticks(grid_range)
-    # ax.set_yticks(grid_range)
-    # ax.grid(True, which='both', color='black', linewidth=1,)
-    #
-    # ax.set_xlim(-max_grid - 0.5, max_grid + 0.5)
-    # ax.set_ylim(-max_grid - 0.5, max_grid + 0.5)
-    #
-    # # Draw gridlines and squares
-    # for x in np.arange(-max_cell, max_cell + 1):
-    #     for y in np.arange(-max_cell, max_cell + 1):
-    #         cell_key = f"({x}, {y})"
-    #         if cell_key in map_instance.cellTable:
-    #             cell = map_instance.cellTable[cell_key]
-    #             color = 'green' if cell.visited else 'black'
-    #         else:
-    #             color = 'white'
-    #         ax.add_patch(plt.Rectangle((x - 0.5, y - 0.5), 1, 1, color=color, edgecolor='black'))
-    #
-    # # Plot cells
-    # for cell in map_instance.cellTable.values():
-    #     color = 'green' if (cell.xPos, cell.yPos) == current_pos else 'black' if cell.visited else 'white'
-    #     ax.add_patch(plt.Rectangle((cell.xPos - 0.5, cell.yPos - 0.5), 1, 1, color=color))
-    #
-    # # Scatter different objects
-    # object_colors = {
-    #     "purple_zombie": "purple", "green_zombie": "green", "aqua_zombie": "aqua",
-    #     "blue_zombie": "blue", "pink_berry": "pink", "orange_berry": "orange",
-    #     "red_berry": "red", "yellow_berry": "yellow", "wall": "gray", "self": "black"
-    # }
-    # for cell in map_instance.cellTable.values():
-    #     if cell.typeid:
-    #         obj_type = cell.typeid
-    #         ax.scatter(cell.xPos, cell.yPos, color=object_colors[obj_type], s=30)
-    #
-    # plt.draw()
-    # plt.pause(0.1)
-
-    return fig, ax
-
-
-def update_plot(map, fig, ax):
-    new_objects = map.world_object_list
-    for obj in new_objects:
-        x, y, c = obj.gps_xy[1], obj.gps_xy[2], getObjectRGB(obj)
-
-    # robot position
-    for obj in new_objects():
-        if obj.typeid:
-            obj_type = obj.typeid
-            ax.scatter(obj.xPos, obj.yPos, color=obj[obj_type], s=30)
-
-    ax.scatter(x, y, c='r', marker='o')
-    fig.canvas.draw()
-    fig.canvas.flush_events()
-
 # Probability Utility Functions
 
 def to_rad(deg):
@@ -603,6 +579,9 @@ def init_youbot(map):
     youbot.sensors = sensors
     youbot.wheels = wheels
 
+    init_gps = youbot.sensors["gps"].getValues()
+    youbot.gps_0 = [init_gps[0], init_gps[2]]
+
     map.timestep = timestep
 
     return youbot
@@ -684,138 +663,6 @@ def simulate_main(nzombies=3, nberries=10, ntimesteps=100):
         pass
         # Update zombie positions
 
-
-# %% Start simple simulation
-
-def simple_sim():
-    # Initialize main map & establish relative center from GPS
-    world_map = worldMapObject()
-
-    # Initialize youbot in world with sensors
-    youbot = init_youbot(world_map)
-    robot = youbot.wb_robot
-
-    # Run get all berry positions from controllers/youbot_controllers/youbot_zombie.py
-    get_all_berry_pos(robot)
-
-    # Initialize plot
-    if plotMap:
-        fig, ax = plot_init(world_map)
-
-    robot_not_dead = 1
-    timestep = world_map.timestep
-    robot_node = robot.getFromDef("Youbot")
-    trans_field = robot_node.getField("translation")
-
-    youbot.init_gps = round(youbot.sensors["gps"].getValues()[0, 2], 3)
-
-    # Temp variable to track coord change across time steps
-    temp_coords = ""
-
-    # Sensor Control Loop
-    while robot.step(TIME_STEP) != -1:
-
-        # Get sensor data
-        gps_values = youbot.sensors["gps"].getValues()
-        lidar_values = youbot.sensors["lidar"].getRangeImage()
-        compass_values = youbot.sensors["compass"].getValues()
-
-        # Update youbot orientation and gps position
-        youbot.orientation = get_comp_angle(compass_values)
-        youbot.gps_xy = round(gps_values[0, 2], 3)
-
-        # Lidar Mapping
-        for i in range(len(lidar_values)):
-            if lidar_values[i] != float('inf') and lidar_values[i] != 0.0:
-                object_list = world_map.world_object_list
-
-                # This could be made more efficient if we limit search to only hash coordinates within youbot (r, 𝜃)
-                gpsvals, = [object.gps_xy for object in object_list]
-
-
-def start_sim():
-    # Put into helper function init_youbot
-
-    # ------------------CHANGE CODE BELOW HERE ONLY--------------------------
-
-    # Initialize main map & establish relative center from GPS
-    world_map = worldMapObject()
-
-    # Initialize youbot in world with sensors
-    youbot = init_youbot(world_map)
-    robot = youbot.wb_robot
-    timestep = world_map.timestep
-
-    passive_wait(0.1, robot, timestep)
-    pc = 0
-    timer = 0
-
-    robot_node = robot.getFromDef("Youbot")
-    trans_field = robot_node.getField("translation")
-
-    get_all_berry_pos(robot)
-
-    robot_not_dead = 1
-
-    # Run get all berry positions from controllers/youbot_controllers/youbot_zombie.py
-    get_all_berry_pos(robot)
-
-    # Sensor Control Loop
-    count = 0
-    # while robot.step(TIME_STEP) != -1:
-    for i in range(10):
-        print(robot.step(TIME_STEP))
-        image = youbot.sensors["camera"].getImage()
-        width = youbot.sensors["camera"].getWidth()
-        height = youbot.sensors["camera"].getHeight()
-
-        # # Used ChatGPT to clarify syntax
-        # np_u    = np.frombuffer(image, dtype=np.uint8)
-        # np_img  = np_u.reshape(height, width, 4)
-        # rgb_img = np_img[:, :, :3]
-        # # hsv_img = cv2.cvtColor(rgb_img, cv2.COLOR_RGB2HSV)
-        #
-        # cv2.imshow("Back Camera", rgb_img)
-        # cv2.waitKey(100)
-
-        youbot.wheels["font_right"].setVelocity(6.0)
-        youbot.wheels["font_left"].setVelocity(8.0)
-        youbot.wheels["back_right"].setVelocity(6.0)
-        youbot.wheels["back_left"].setVelocity(8.0)
-
-    # ------------------CHANGE CODE ABOVE HERE ONLY--------------------------
-
-    while (robot_not_dead == 1):
-
-        if (robot_info[0] < 0):
-            robot_not_dead = 0
-            print("ROBOT IS OUT OF HEALTH")
-            # if(zombieTest):
-            #    print("TEST PASSED")
-            # else:
-            #    print("TEST FAILED")
-            # robot.simulationQuit(20)
-            # exit()
-
-        if (timer % 2 == 0):
-            trans = trans_field.getSFVec3f()
-            robot_info = check_berry_collision(robot_info, trans[0], trans[2], robot)
-            robot_info = check_zombie_collision(robot_info, trans[0], trans[2], robot)
-
-        if (timer % 16 == 0):
-            robot_info = update_robot(robot_info)
-            timer = 0
-
-        if (robot.step(timestep) == -1):
-            exit()
-
-        timer += 1
-
-    # ------------------CHANGE CODE BELOW HERE ONLY--------------------------
-
-    # ------------------CHANGE CODE ABOVE HERE ONLY--------------------------
-
-    return 0
 
 
 # %% ----------- Sandbox -----------
@@ -906,7 +753,30 @@ def processImageZombie(ims,lidar):
 def processImageSoldid(ims,lidar):
     pass
 def lidarDetect(map):
-    pass
+    #%%
+    youbot = map.youbot
+
+    tmp = robot.step(TIME_STEP)
+    lidar_values = map.youbot.sensors["lidar"].getRangeImage()
+
+    x = youbot.gps_xy[0]
+    y = youbot.gps_xy[1]
+    ax = plt.subplots
+    imrange = range(213,300)
+    for i in imrange:
+        if lidar_values[i] != float('inf') and lidar_values[i] != 0.0:
+            theta, gps_xy = map_lidar(map, i, lidar_values[i])
+            ax.plot([x, gps_xy[0]],[y, gps_xy[1]] )
+
+
+
+
+
+
+
+
+
+
 def analyzeColor(map,plts=None):
 
     # Explore Back Camera Image Processing
@@ -1041,6 +911,10 @@ def lidar2image(map):
             print(lidar_values[i])
     pass
 
+<<<<<<< HEAD
+
+=======
+>>>>>>> 9b5908a15c41d9c097ef6bcdc9dc85c58e3abfa5
 def sandbox_dc():
 # %% Sandbox for Dan
 # Create a figure with subplots

@@ -250,7 +250,6 @@ def main():
         fl.setVelocity(8.0)
         br.setVelocity(6.0)
         bl.setVelocity(8.0)
-    i=0
          
 
     #------------------CHANGE CODE ABOVE HERE ONLY--------------------------
