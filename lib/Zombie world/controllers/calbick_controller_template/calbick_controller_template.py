@@ -1066,7 +1066,9 @@ def gps_to_occupancy(gps_xy, min_x, min_y, cell_width):
 def occupancy_to_gps(idx, min_x, min_y, cell_width):
     return [(a * cell_width) + b for a, b in zip(idx, (min_x, min_y))]
 
-def list_min_max_gps(lst):
+
+def list_min_max_gps(map):
+    lst = map.world_object_list
     min_max = {
         'min_x': min(lst, key=lambda obj: obj.gps_xy[0]).gps_xy[0],
         'max_x': max(lst, key=lambda obj: obj.gps_xy[0]).gps_xy[0],
@@ -1078,7 +1080,7 @@ def list_min_max_gps(lst):
 
 def build_occupancy_grid(map):
     # Bounds - replace these with parameters.
-    min_max_gps = list_min_max_gps(map.world_object_list)
+    min_max_gps = list_min_max_gps(map)
     min_x = min_max_gps["min_x"]
     max_x = min_max_gps["max_x"]
     min_y = min_max_gps["min_y"]
@@ -1089,28 +1091,46 @@ def build_occupancy_grid(map):
     map_width = int(((max_x - min_x) // cell_width) + 1)
     map_height = int(((max_y - min_y) // cell_width) + 1)
 
-    occupancy_matrix = [[1 for i in range(map_height)] for j in range(map_width)]
+    #occupancy_matrix = [[1 for i in range(map_height)] for j in range(map_width)]
+    occupancy_matrix = [[1 for i in range(map_width)] for j in range(map_height)]
+
 
     # POPULATE OCCUPANCY MATRIX
-    for obj in world_map.world_object_list:
+    for obj in map.world_solid_list:
         x, y = gps_to_occupancy(obj.gps_xy, min_x, min_y, cell_width)
 
         if obj.typeid == 'zombie':
             zombie_range = int(base_zombie_ranges[obj.color] // cell_width)
             # create dist to nearest berry for purple zombies
-            for i in range(x - zombie_range, x + zombie_range):
-                for j in range(y - zombie_range, y + zombie_range):
-                    if 0 <= i < (map_width - 1) and 0 <= j < (map_height - 1):
+            for i in range(y - zombie_range, y + zombie_range):
+                for j in range(x - zombie_range, x + zombie_range):
+                    if 0 <= i < (map_height - 1) and 0 <= j < (map_width - 1):
                         # print("Tried to add at idx", i, j)
                         occupancy_matrix[i][j] = 0
-        occupancy_matrix[x][y] = 0
+        occupancy_matrix[y][x] = 0
+
+    # for obj in map.world_object_list:
+    #     x, y = gps_to_occupancy(obj.gps_xy, min_x, min_y, cell_width)
+    #     occupancy_matrix[y][x] = 0
+    #
+    # print("Max Height:", map_height)
+    # print("Max Width:", map_width)
+    #
+    # for obj in map.world_solid_list:
+    #     x, y = gps_to_occupancy(obj.gps_xy, min_x, min_y, cell_width)
+    #     print(obj.typeid, x, y)
+    #     occupancy_matrix[y][x] = 0
+    #
+    # occupancy_matrix[0][1] = 0
+    # occupancy_matrix[10][1] = 0
+
     grid = Grid(matrix=occupancy_matrix)
     return grid
 
 
 def print_path(map, grid, path, target):
     cell_width = map.cell_width
-    min_max_gps = list_min_max_gps(map.world_object_list)
+    min_max_gps = list_min_max_gps(map)
     min_x = min_max_gps["min_x"]
     max_x = min_max_gps["max_x"]
     min_y = min_max_gps["min_y"]
@@ -1124,7 +1144,7 @@ def print_path(map, grid, path, target):
 
 def calculate_path(map, grid, target):
     cell_width = map.cell_width
-    min_max_gps = list_min_max_gps(map.world_object_list)
+    min_max_gps = list_min_max_gps(map)
     min_x = min_max_gps["min_x"]
     max_x = min_max_gps["max_x"]
     min_y = min_max_gps["min_y"]
@@ -1143,23 +1163,23 @@ def calculate_path(map, grid, target):
 
 def berry_seeking_target_coords(map, num_berries_considered, steps_ahead, display_path=False):
     # Initialization functions
-    min_max_gps = list_min_max_gps(world_map.world_object_list)
+    min_max_gps = list_min_max_gps(map)
     grid = build_occupancy_grid(map)
     potential_paths = []
 
     # Calculate paths for n most promising berries
     for i in range(num_berries_considered):
-        if i < len(world_map.world_berry_list):
-            potential_paths.append(calculate_path(world_map, grid, world_map.world_berry_list[i]))
+        if i < len(map.world_berry_list):
+            potential_paths.append(calculate_path(map, grid, map.world_berry_list[i]))
             grid.cleanup()
 
     # Find minimum length valid path
     if all(el == [] for el in potential_paths):
         print("No berry target found.")
-        return None
+        return None, None
 
     optimal_path = min(filter(lambda x: len(x) > 0, potential_paths), key=len, default=None)
-    optimal_berry = world_map.world_berry_list[potential_paths.index(optimal_path)]
+    optimal_berry = map.world_berry_list[potential_paths.index(optimal_path)]
     if len(optimal_path) <= steps_ahead:
         steps_ahead = len(optimal_path) - 1
 
@@ -1168,7 +1188,7 @@ def berry_seeking_target_coords(map, num_berries_considered, steps_ahead, displa
 
     # Optional print
     if display_path:
-        print_path(world_map, grid, optimal_path, optimal_berry)
+        print_path(map, grid, optimal_path, optimal_berry)
         print("Optimal Berry:", optimal_berry.color, "at", optimal_berry.gps_xy)
         print("Youbot:", youbot.gps_xy)
         print("Step to:", gps_target)
@@ -1245,6 +1265,8 @@ def sandbox_wp():
 # %% Pathing Sim
     youbot.gps_xy = [youbot.sensors["gps"].getValues()[0], youbot.sensors["gps"].getValues()[2]]
     world_map.world_object_list = []
+    world_map.world_zombie_list = []
+    world_map.world_solid_list = []
 
     # zombies
     num_zombies = 5
@@ -1254,8 +1276,8 @@ def sandbox_wp():
                               (random.uniform(-10, 10), random.uniform(-10, 10)),
                               )
         world_map.world_zombie_list.append(zombie)
-        # Add this behavior to zombies, walls, and berries!
         world_map.world_object_list.append(zombie)
+        world_map.world_solid_list.append(zombie)
 
     # walls
     num_walls = 30
