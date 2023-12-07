@@ -67,7 +67,10 @@ class worldMapObject:
         self.cell_object_table = {}  # hash table for "map_cell":object_list_in_cell (e.g. '[1,0]':[berry1 berry2 zombie1] )
         self.world_zombie_list = []
         self.world_berry_list = []
+        self.world_berry_dict = []
         self.world_solid_list = []
+        self.visible_objecs = []
+        self.hidden_objects = []
         self.world_object_list = self.world_zombie_list + self.world_berry_list + self.world_solid_list
         self.cell_properties_list = []
         self._init_gps = []
@@ -87,21 +90,24 @@ class worldMapObject:
         self._init_gps = value
 
 class baseObject():
-    def __init__(self, map, typeid=None):
-
+    def __init__(self, map, object_id=None,typeid=None,cell_idx=None,cell_hash= None,velocity=None,gps_0=None):
         self.map = map
         self.typeid = typeid
-        self.object_id = id(self)
-        self.cell_idx  = None
-        self.cell_hash = None
-        self.velocity  = None
-        self.gps_0     = None
+        if object_id is None:
+            self.object_id = id(self)
+        self.cell_idx  = cell_idx
+        self.cell_hash = cell_hash
+        self.velocity  = velocity
+        self.gps_0     = gps_0
         self._gps_xy   = [0, 0]  # Initialize with a default value
 
         self.origin_xy = map.init_gps
         self.angle2youbot = None
 
 
+    def toZombie(self,color):
+        return zombieObject(self.map,zombie_color=color,
+                            self.object_id,self.cell_idx,self.cell_hash,self.velocity,self.gps_0)
     @property
     def gps_xy(self):
         if self.object_id != map.youbot.object_id:
@@ -188,11 +194,14 @@ class baseObject():
 
 # Changed structure, added observed effect
 class berryObject(baseObject):
-    def __init__(self, map, dist=None, berry_color=None, effect_type=None, gps_xy=None):
-        super().__init__(map, dist, 'berry')
+
+
+    def __init__(self, map, color=None, object_id=None, typeid=None, cell_idx=None, cell_hash=None, velocity=None,
+             gps_0=None,effect_type=None):
+
+    super().__init__(map, object_id, 'zombie', cell_idx, cell_hash, velocity, gps_0)
         self.color = berry_color
         self.effect = effect_type
-        self.dist2youbot = dist
         self.priority  = self.priority_score()
         self.reachable = None
         self.priority = self.priority_score()
@@ -279,9 +288,9 @@ class youbotObject(baseObject):
 
 
 class zombieObject(baseObject):
-    def __init__(self, map, zombie_color=None, typeid='zombie'):
-        super().__init__(map,typeid)
-        self.color = zombie_color
+    def __init__(self, map, color=None, object_id=None,typeid=None,cell_idx=None,cell_hash= None,velocity=None,gps_0=None):
+        super().__init__(map,object_id,'zombie',cell_idx,cell_hash,velocity,gps_0)
+        self.color = color
         self.chasing = False
         # self.map_rc = self.hash_gps_to_map() if gps_xy is not None else None
         # if gps_xy is not None:
@@ -919,13 +928,8 @@ def lidarDetect(map):
     ax.set_ylabel('Y Coordinate')
     ax.set_title('Lidar Data Visualization')
 
-    deg30 = round(30 // (360 / 512))
-    imrange = [x for x in range(512-deg60,512)]
-    imrange.extend([x for x in range(deg30)])
-    xsv = []
-    ysv = []
 
-    ## Scan Image
+    ## Scan Image -----------------
     cmaps = analyzeColor(map)
     sum0 = [np.sum(x, (0, 2)) for x in cmaps.values()]
     sumb = np.sum(cmaps["blue"][:,:,2], (0, 2))
@@ -939,27 +943,37 @@ def lidarDetect(map):
 
     zombie_idxs = {"aqua": [], "blue": [], "purple": [], "green": []}
     zombie_threshold = 500
-    for color in berry_idxs.keys():
+    for color in zombie_idxs.keys():
         vec = np.sum(cmaps[color], (0, 2))
-        berry_idxs[color] = np.where(vec > berry_threshold)
+        zombie_idxs[color] = np.where(vec > zombie_threshold)
 
+    # Scan Lidar -----------
 
+    deg30 = round(30 // (360 / 512))
 
-    # for i in cmaps.i
+    rightidx = 512 - deg30
+    leftidx  = deg30
     # Build Scene Object list
     objs_in_view = []
-    count1 = 0
-    count2 = 0
-    for i in imrange:
+    count1,count2 = 0,0
+    continuity_buffer = 4
+    for i in range(lidar_values):
         mag = lidar_values[i]
 
         lidar_in_range = (mag != float('inf')) & (mag != 0.0)
         if lidar_in_range:
-            if (mag != imrange[0]) and (math.abs(mag0 - mag[1]) > 0) and (count2 < 3):
+            if count1 == 0:
+                obj = baseObject()
+            # Check if we are within image range
+            if rightidx <= i <= leftidx:
+                # Check if continuity has been broken
+                if (count2 < continuity_buffer):
 
-            # Check # beams that are continuously in same range
-            # If we
-                theta, gps_xy = map_lidar(map, i, lidar_values[i])
+                    count1,count2 = 0,0
+
+                # Check # beams that are continuously in same range
+                # If we
+                    theta, gps_xy = map_lidar(map, i, lidar_values[i])
 
             count1 += 1
         else:
