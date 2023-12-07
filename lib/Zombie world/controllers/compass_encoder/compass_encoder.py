@@ -230,6 +230,14 @@ def main():
     br.setVelocity(0.0)
     bl.setVelocity(0.0)
 
+    arm1 = robot.getDevice('arm1')
+    val_arm1 = arm1.getTargetPosition()
+    arm2 = robot.getDevice('arm2')
+    val_arm2 = arm2.getTargetPosition()
+    arm3 = robot.getDevice('arm3')
+    val_arm3 = arm3.getTargetPosition()
+    print("val", val_arm3)
+
     # Initialize main map & establish relative center from GPS
     mainMap = Map(.1, None)
 
@@ -249,6 +257,9 @@ def main():
     prev_actual = get_comp_angle(compass.getValues())
     print("before the loop the actual orientation is", prev_actual)
     current_orientation = None
+    gps_values = gps.getValues()
+    prevGpsX, prevGpsY = round(gps_values[0], 3), round(gps_values[0], 3)
+    robot.step(TIME_STEP)
 
     def reorient(speed, n):
         """ Moves the robot in a straight linear path for n timesteps and returns its new orientation."""
@@ -268,6 +279,28 @@ def main():
         # print("the gps cooridnates are", old_gps, new_gps)
         print("The new orientation is", new_orientation, TIME_STEP)
         return new_orientation
+
+    def sweep(target_position_for_arm1=2.85, target_position_for_arm2=-1.13, target_position_for_arm3=-0.7):
+        fr.setVelocity(0)
+        fl.setVelocity(0)
+        br.setVelocity(0)
+        bl.setVelocity(0)
+        arm2.setPosition(target_position_for_arm2)
+        arm3.setPosition(target_position_for_arm3)
+        robot.step(TIME_STEP * 10)
+        arm1.setPosition(target_position_for_arm1)
+        robot.step(TIME_STEP * 5)
+        arm1.setPosition(-1 * target_position_for_arm1)
+        # robot.step(TIME_STEP * 5)
+
+
+
+    def reset_arms(pos_arm1, pos_arm2, pos_arm3):
+        robot.step(TIME_STEP * 5)
+        arm1.setPosition(pos_arm1)
+        arm2.setPosition(pos_arm2)
+        arm3.setPosition(pos_arm3)
+
     # Sensor Control Loop
     while robot.step(TIME_STEP) != -1:
         # Get sensor data
@@ -287,6 +320,10 @@ def main():
         velocity_br = br.getVelocity()
         velocity_bl = bl.getVelocity()
 
+        # arm2.setPosition(-1.13)
+        # arm3.setPosition(-0.6)
+        # arm4.setPosition(0.1)
+
         ## rotational error is less when we try to rotate with this set of velocities 2, -2, 2, -2
         rotating = check_rotation_condition(velocity_fr, velocity_fl, velocity_br, velocity_bl, margin=0.001)
 
@@ -299,6 +336,15 @@ def main():
             print("error:", current_orientation - orientation)
 
         prevGpsX, prevGpsY = gpsX, gpsY
+        print("gps are",  gpsX, gpsY)
+        if (gpsX, gpsY) == (8.278, 0.015):
+            sweep()
+            # reset_arms(val_arm1, val_arm2, val_arm3)
+            fr.setVelocity(-1*velocity_fr)
+            fl.setVelocity(-1*velocity_fl)
+            br.setVelocity(-1*velocity_br)
+            bl.setVelocity(-1*velocity_bl)
+
         
         if rotating:
             if rotational_orientation is None:
@@ -311,7 +357,6 @@ def main():
                 fl.setVelocity(velocity_fl)
                 br.setVelocity(velocity_br)
                 bl.setVelocity(velocity_bl)
-
                 print("rotational_orientation initialised", rotational_orientation)
             rotational_orientation -= orientation_using_velocities(velocity_fr, velocity_fl, velocity_br, velocity_bl,4.00295, TIME_STEP * 0.001)
             rotational_orientation = rotational_orientation % _2PI
@@ -340,6 +385,8 @@ def main():
         mappedY = mainMap.gps_to_map(mainMap.initialReading[1], gpsY)
         coords = str_coords(mappedX, mappedY)
 
+        # arm2.setPosition(-1.0)
+        # arm4.setPosition(-1.5)
         # Create new dictionary entry if cell unencountered
         if mainMap.cellTable.get(coords) is None:
             mainMap.cellTable[coords] = MapCell(mappedX, mappedY, None, None, None, None)
