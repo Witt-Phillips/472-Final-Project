@@ -746,33 +746,26 @@ def initplot(isolated_regions):
     plt.show(block=False)
     return fig, mask_ax, rgb_ax, imag_ax
 
-def processImageBerry(ims,lidar):
-    pass
-def processImageZombie(ims,lidar):
-    pass
-def processImageSoldid(ims,lidar):
-    pass
-
-
-def analyzeColor(map,plts=None):
+#%%
+def analyzeColor(map,plts=None,plotStuff=False):
 
     # Explore Back Camera Image Processing
     rgb, hsv = pullFrame(map.youbot)
 
     # Define saturation and value ranges
-    saturation_range = [30, 100]
+    saturation_range = [40, 100]
     value_range = [0, 100]
 
     hue_ranges = {
-        "red1": [0, 5],
+        "red1": [0, 9],
         "red2": [340, 360],
-        "orange": [10, 36],
-        "yellow": [41, 69],
+        "orange": [12, 27],
+        "yellow": [53, 60],
         "green": [69, 140],
-        "aqua": [155, 195],
-        "blue": [200, 250],
-        "purple": [250, 290],
-        "pink": [299, 333],
+        "aqua": [155, 190],
+        "blue": [190, 215],
+        "purple": [250, 280],
+        "pink": [286, 333],
     }
 
     # Create color ranges in HSV
@@ -802,7 +795,7 @@ def analyzeColor(map,plts=None):
     # berries = processImageBerry(map,isolated_regions[berry_colors])
     # zombies = processImageZombie(map,isolated_regions[zombie_colors])
 
-    plotStuff = True
+    plotStuff = plotStuff
     if plotStuff:
         if plts is None:
             plt.ion()
@@ -823,8 +816,11 @@ def analyzeColor(map,plts=None):
             # Redraw the updated plots
             fig.canvas.draw()
             fig.canvas.flush_events()
+    else:
+        return isolated_regions
 
 
+#%%
 def isolateCameraRegions(map):
     # Explore Back Camera Image Processing
     rgb, hsv = pullFrame(map.youbot)
@@ -836,8 +832,8 @@ def isolateCameraRegions(map):
     hue_ranges = {
         "red1": [0, 5],
         "red2": [340, 360],
-        "orange": [10, 36],
-        "yellow": [41, 69],
+        "orange": [21, 30],
+        "yellow": [39, 60],
         "green": [69, 140],
         "aqua": [155, 195],
         "blue": [200, 250],
@@ -924,37 +920,60 @@ def lidarDetect(map):
     ax.set_title('Lidar Data Visualization')
 
     deg30 = round(30 // (360 / 512))
-    imrange = [x for x in range(deg30)]
-    imrange.extend([x for x in range(512-deg60,512)])
+    imrange = [x for x in range(512-deg60,512)]
+    imrange.extend([x for x in range(deg30)])
     xsv = []
     ysv = []
 
-    # Build Scene Object list
-    objs_in_view = [];
-    for i in imrange:
+    ## Scan Image
+    cmaps = analyzeColor(map)
+    sum0 = [np.sum(x, (0, 2)) for x in cmaps.values()]
+    sumb = np.sum(cmaps["blue"][:,:,2], (0, 2))
 
-        if lidar_values[i] != float('inf') and lidar_values[i] != 0.0:
+
+    berry_idxs = {"red":[] , "yellow":[], "orange": [] ,"pink": []}
+    berry_threshold = 200
+    for color in berry_idxs.keys():
+        vec = np.sum(cmaps[color],(0,2))
+        berry_idxs[color] = np.where(vec > berry_threshold)
+
+    zombie_idxs = {"aqua": [], "blue": [], "purple": [], "green": []}
+    zombie_threshold = 500
+    for color in berry_idxs.keys():
+        vec = np.sum(cmaps[color], (0, 2))
+        berry_idxs[color] = np.where(vec > berry_threshold)
+
+
+
+    # for i in cmaps.i
+    # Build Scene Object list
+    objs_in_view = []
+    count1 = 0
+    count2 = 0
+    for i in imrange:
+        mag = lidar_values[i]
+
+        lidar_in_range = (mag != float('inf')) & (mag != 0.0)
+        if lidar_in_range:
+            if (mag != imrange[0]) and (math.abs(mag0 - mag[1]) > 0) and (count2 < 3):
 
             # Check # beams that are continuously in same range
             # If we
+                theta, gps_xy = map_lidar(map, i, lidar_values[i])
 
-            #
-            theta, gps_xy = map_lidar(map, i, lidar_values[i])
-            xsv.append(x)
-            xsv.append(gps_xy[0])
-            xsv.append(np.nan)
-            ysv.append(y)
-            ysv.append(gps_xy[1])
-            ysv.append(np.nan)
+            count1 += 1
+        else:
+            count1  = 0
+            count2 += 1
+
+
 
     # Go through Objects in Scene and compare with hidden/visible objects
     objs_vis = map.v
     while len(objs_in_view) > 0:
         obj = objs_in_view.pop()
 
-        for
 
-        sc
     ax.plot(xsv, ysv, color='blue')  # Add color if needed
 
     plt.show()
@@ -962,10 +981,13 @@ def lidarDetect(map):
 def sandbox_dc():
 # %% Sandbox for Dan
 # Create a figure with subplots
-    plts = analyzeColor(map)
+    plts = analyzeColor(map,plotStuff=True)
 #%%
     tmp = robot.step(TIME_STEP)
-    analyzeColor(map,plts)
+    analyzeColor(map,plts,plotStuff=True)
+    cmaps = analyzeColor(map)
+    a = np.sum(cmaps["blue"][:,:,2],0)
+    x = [np.sum(x,(0,2)) for x in cmaps.values()]
 
 #%% assess object
     lidar_objects = lidar2image(map)
